@@ -151,16 +151,14 @@ th{ color:#ddd; text-align:left; }
     </div>
   </div>
 
-  <input
-    id="scanInput"
-    type="text"
-    readonly
-    autocomplete="off"
-    autocorrect="off"
-    spellcheck="false"
-    inputmode="text"
-    placeholder="Escanee código…"
-  >
+<input
+  id="scanInput"
+  type="text"
+  autocomplete="off"
+  autocorrect="off"
+  spellcheck="false"
+  placeholder="Escanee código…"
+>
 
   <p id="status"></p>
 
@@ -199,15 +197,6 @@ const cntT   = document.getElementById("cntTotal");
 const SESSION_KEY = "multiscan_cnt_" + ORDEN_ID;
 let sesion = Number(sessionStorage.getItem(SESSION_KEY) || 0);
 cntS.textContent = sesion;
-
-/* ---- Foco permanente ---- */
-function forceFocus(){
-  if(document.activeElement !== input){
-    input.focus();
-  }
-}
-setInterval(forceFocus, 500);
-forceFocus();
 
 /* ---- Beep / vibración ---- */
 function beep(){
@@ -308,3 +297,4 @@ function volver(){
 
 </body>
 </html>
+
