@@ -244,7 +244,7 @@ input.addEventListener("keydown", async (e)=>{
     try{
       const url = `https://api.appsheet.com/api/v2/apps/${APPSHEET_APP_ID}/tables/${encodeURIComponent(TABLE_LINES)}/Action`;
       const body = {
-        Action:"UNIFICAR_SCAN",
+        Action:"ADD",
         Properties:{ Locale:"es-ES" },
         Rows:[{
           ID: crypto.randomUUID(),
@@ -290,4 +290,5 @@ function volver(){
 
 </body>
 </html>
+
 
