@@ -159,7 +159,6 @@ th{ color:#ddd; text-align:left; }
   spellcheck="false"
   placeholder="Escanee código…"
 >
-
   <p id="status"></p>
 
   <table>
@@ -174,6 +173,9 @@ th{ color:#ddd; text-align:left; }
 </div>
 
 <script>
+
+
+  
 /* ============ CONFIG ============ */
 const APPSHEET_APP_ID = "134208bd-92de-4550-b09a-657cb1cbdf2e";
 const APPSHEET_KEY   = "V2-1yk0i-hFZLD-4XZ3z-n5RCB-Cl6iS-MocBD-nFdJb-Cta9q";
@@ -192,6 +194,14 @@ const status = document.getElementById("status");
 const lista  = document.getElementById("lista");
 const cntS   = document.getElementById("cntSesion");
 const cntT   = document.getElementById("cntTotal");
+  
+  // FOCO AUTOMÁTICO AL CARGAR LA PÁGINA
+  window.addEventListener("load", () => {
+    setTimeout(() => {
+      input.focus();
+    }, 300);
+  });
+
 
 /* ---- Persistencia sesión ---- */
 const SESSION_KEY = "multiscan_cnt_" + ORDEN_ID;
@@ -226,21 +236,35 @@ async function api(url, body){
 }
 
 /* ---- Total real por ORDEN ID ---- */
-(async ()=>{
+
+  async function cargarTotalFactura(){
   try{
     const url = `https://api.appsheet.com/api/v2/apps/${APPSHEET_APP_ID}/tables/${encodeURIComponent(TABLE_LINES)}/Find`;
     const body = {
-      Properties:{ Locale:"es-ES" },
-      Filter: `[ORDEN ID] = ${ORDEN_ID}`
+      Properties: { Locale: "es-ES" },
+      Filter: `[ORDEN ID] = ${Number(ORDEN_ID)}`
     };
+
     const res = await api(url, body);
-    const rows = res && res.Rows ? res.Rows : [];
-    cntT.textContent = rows.length;
+
+    let total = 0;
+
+    if (res && Array.isArray(res.Rows)) {
+      total = res.Rows.length;
+    }
+
+    cntT.textContent = total;
+
   }catch(e){
-    console.error(e);
-    cntT.textContent = "—";
+    console.error("Error total factura:", e);
+    cntT.textContent = 0;
   }
-})();
+}
+
+// llamar al cargar la página
+
+  cargarTotalFactura();
+
 
 /* ---- Escaneo ---- */
 input.addEventListener("keydown", async (e)=>{
@@ -289,6 +313,13 @@ input.addEventListener("keydown", async (e)=>{
   }
 });
 
+      // VOLVER A ENFOCAR SIEMPRE
+    setTimeout(() => {
+      input.focus();
+    }, 50);
+  }
+});
+  
 /* ---- Volver ---- */
 function volver(){
   window.location.href = "appsheet://";
@@ -297,4 +328,5 @@ function volver(){
 
 </body>
 </html>
+
 
