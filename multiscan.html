@@ -196,6 +196,10 @@ const lista  = document.getElementById("lista");
 const cntS   = document.getElementById("cntSesion");
 const cntT   = document.getElementById("cntTotal");
 
+  let sesion = 0;        // contador de esta sesión
+let totalFactura = 0; // total REAL de la factura
+
+
 /* ---------- FOCO AUTOMÁTICO ---------- */
 window.addEventListener("load", () => {
   setTimeout(() => {
@@ -205,9 +209,9 @@ window.addEventListener("load", () => {
 
 /* ---------- CONTADOR SESIÓN ---------- */
 const SESSION_KEY = "multiscan_cnt_" + ORDEN_ID;
-let sesion = Number(sessionStorage.getItem(SESSION_KEY) || 0);
+sesion = Number(sessionStorage.getItem(SESSION_KEY) || 0);
 cntS.textContent = sesion;
-
+  
 /* ---------- API ---------- */
 async function api(url, body){
   const r = await fetch(url,{
@@ -232,7 +236,8 @@ async function cargarTotalFactura(){
     };
     const res = await api(url, body);
     const rows = res && res.Rows ? res.Rows : [];
-    cntT.textContent = rows.length;
+  totalFactura = rows.length;
+cntT.textContent = totalFactura;
   }catch(e){
     console.error(e);
     cntT.textContent = 0;
@@ -281,8 +286,9 @@ input.addEventListener("keydown", async (e)=>{
       sesion++;
       sessionStorage.setItem(SESSION_KEY, sesion);
       cntS.textContent = sesion;
-      cntT.textContent = Number(cntT.textContent) + 1;
-
+    
+      totalFactura++;
+cntT.textContent = totalFactura;
       const tr = document.createElement("tr");
       tr.innerHTML = `<td>${codigo}</td><td>1</td>`;
       lista.prepend(tr);
@@ -309,3 +315,4 @@ function volver(){
 
 </body>
 </html>
+
