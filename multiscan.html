@@ -281,14 +281,17 @@ input.addEventListener("keydown", async (e)=>{
     }
   }
 });
-
-/* ---------- VOLVER ---------- */
 function volver(){
-  window.location.href = "appsheet://";
-}
-</script>
+  const urlApp = `appsheet://www.appsheet.com/start/${APPSHEET_APP_ID}#view=FACTURAS_Detail&row=${encodeURIComponent(ORDEN_ID)}`;
+  const urlWeb = `https://www.appsheet.com/start/${APPSHEET_APP_ID}#view=FACTURAS_Detail&row=${encodeURIComponent(ORDEN_ID)}`;
 
-</body>
-</html>
+  // Intenta abrir AppSheet
+  window.location.href = urlApp;
+
+  // Fallback por si Android no intercepta el scheme
+  setTimeout(() => {
+    window.location.href = urlWeb;
+  }, 600);
+}
 
 
