@@ -184,7 +184,7 @@ th{ color:#ddd; text-align:left; }
 <script>
 /* ================= CONFIG ================= */
 const APPSHEET_APP_ID = "134208bd-92de-4550-b09a-657cb1cbdf2e";
-const APPSHEET_KEY   = "V2-1yk0i-hFZLD-4XZ3z-n5RCBB-Cl6iS-MocBD-nFdJb-Cta9q";
+const APPSHEET_KEY   = "V2-1yk0i-hFZLD-4XZ3z-n5RCB-Cl6iS-MocBD-nFdJb-Cta9q"; // ✅ EXACTA (la tuya)
 const TABLE_FACTURAS  = "SALIDAS FACTURAS";
 const TABLE_PRESTAMOS = "SALIDAS PRESTAMOS";
 /* ========================================= */
@@ -255,12 +255,11 @@ async function api(url, body){
     body: JSON.stringify(body)
   });
 
-  // ✅ IMPORTANTE: leemos el texto para clasificar el error (código inválido vs error real)
+  // ✅ leemos el texto para clasificar el error (código inválido vs error real)
   const txt = await r.text();
 
   if(!r.ok) throw (txt || ("HTTP " + r.status));
 
-  // si viene JSON lo devolvemos; si no, devolvemos texto
   try { return JSON.parse(txt); } catch { return txt; }
 }
 
@@ -274,7 +273,7 @@ function tone(freq, ms){
   setTimeout(()=>{ o.stop(); ctx.close?.(); }, ms);
 }
 
-// OK (como tu beep)
+// OK (igual comportamiento: beep)
 function beep(){ tone(800, 100); }
 
 // ✅ NUEVOS tonos
@@ -293,6 +292,7 @@ function esErrorCodigoInvalido(errText){
   const t = String(errText || "").toLowerCase();
   return (
     (t.includes("invalid value for column") && t.includes("codigo_escaneo")) ||
+    t.includes("invalid value for column") ||
     t.includes("invalid value") ||
     t.includes("can't add or update a row because of an invalid value")
   );
@@ -303,7 +303,7 @@ input.addEventListener("keydown", async (e)=>{
   if(e.key === "Enter"){
     e.preventDefault();
 
-    const codigo = input.value.trim().replace(/\s+/g,""); // ✅ guardamos para usarlo en el mensaje de error
+    const codigo = input.value.trim().replace(/\s+/g,"");
     input.value = "";
     if(!codigo) return;
 
@@ -345,7 +345,6 @@ input.addEventListener("keydown", async (e)=>{
     }catch(err){
       console.error(err);
 
-      // ✅ NUEVO: mensaje con el código + vibración si es “código no existe”
       if(esErrorCodigoInvalido(err)){
         beepWarn();
         vibrar([80, 60, 80]); // ✅ vibración corta-doble
@@ -374,8 +373,8 @@ function volver(){
     window.location.href = urlWeb;
   }, 600);
 }
+
 </script>
 
 </body>
 </html>
-
