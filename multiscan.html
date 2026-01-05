@@ -10,7 +10,7 @@
   --verde:#39d353;
   --blanco:#ffffff;
   --rojo:#ff4d4d;
-  --amarillo:#ffb020; /* ✅ NUEVO: aviso código inválido */
+  --amarillo:#ffb020; /* aviso código inválido */
 }
 *{ box-sizing:border-box; }
 
@@ -130,7 +130,7 @@ th{ color:#ddd; text-align:left; }
 
 .ok{ color:var(--verde); text-align:center; }
 .err{ color:var(--rojo); text-align:center; }
-.warn{ color:var(--amarillo); text-align:center; } /* ✅ NUEVO */
+.warn{ color:var(--amarillo); text-align:center; }
 </style>
 </head>
 
@@ -184,7 +184,7 @@ th{ color:#ddd; text-align:left; }
 <script>
 /* ================= CONFIG ================= */
 const APPSHEET_APP_ID = "134208bd-92de-4550-b09a-657cb1cbdf2e";
-const APPSHEET_KEY   = "V2-1yk0i-hFZLD-4XZ3z-n5RCB-Cl6iS-MocBD-nFdJb-Cta9q"; // ✅ EXACTA (la tuya)
+const APPSHEET_KEY   = "V2-1yk0i-hFZLD-4XZ3z-n5RCB-Cl6iS-MocBD-nFdJb-Cta9q";
 const TABLE_FACTURAS  = "SALIDAS FACTURAS";
 const TABLE_PRESTAMOS = "SALIDAS PRESTAMOS";
 /* ========================================= */
@@ -255,30 +255,47 @@ async function api(url, body){
     body: JSON.stringify(body)
   });
 
-  // ✅ leemos el texto para clasificar el error (código inválido vs error real)
-  const txt = await r.text();
-
+  const txt = await r.text();           // <- para clasificar errores
   if(!r.ok) throw (txt || ("HTTP " + r.status));
 
   try { return JSON.parse(txt); } catch { return txt; }
 }
 
-/* ---------- TONOS / VIBRACIÓN ---------- */
-function tone(freq, ms){
+/* ---------- TONOS / VIBRACIÓN (MEJORADOS) ---------- */
+function tone(freq, ms, type="sine"){
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
   const o = ctx.createOscillator();
+  const g = ctx.createGain();
+
+  o.type = type;
   o.frequency.value = freq;
-  o.connect(ctx.destination);
+
+  g.gain.setValueAtTime(0.0001, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + ms/1000);
+
+  o.connect(g);
+  g.connect(ctx.destination);
+
   o.start();
-  setTimeout(()=>{ o.stop(); ctx.close?.(); }, ms);
+  setTimeout(()=>{ o.stop(); ctx.close?.(); }, ms + 30);
 }
 
-// OK (igual comportamiento: beep)
-function beep(){ tone(800, 100); }
+// OK: 1 beep corto
+function beep(){
+  tone(900, 90, "sine");
+}
 
-// ✅ NUEVOS tonos
-function beepWarn(){ tone(420, 140); } // código inválido / no existe
-function beepErr(){  tone(220, 220); } // error duro
+// CÓDIGO NO EXISTE: 2 beeps rápidos (bien notorio)
+function beepWarn(){
+  tone(520, 70, "square");
+  setTimeout(()=>tone(520, 70, "square"), 110);
+}
+
+// ERROR REAL: 1 beep grave y largo
+function beepErr(){
+  tone(220, 220, "sawtooth");
+}
 
 function vibrar(pattern){
   try{
@@ -286,7 +303,7 @@ function vibrar(pattern){
   }catch(_){}
 }
 
-// ✅ detector basado en el error real que tú mostraste:
+// detector basado en tu error real:
 // "Invalid value for column CODIGO_ESCANEO: 12345"
 function esErrorCodigoInvalido(errText){
   const t = String(errText || "").toLowerCase();
@@ -347,11 +364,12 @@ input.addEventListener("keydown", async (e)=>{
 
       if(esErrorCodigoInvalido(err)){
         beepWarn();
-        vibrar([80, 60, 80]); // ✅ vibración corta-doble
+        vibrar([60,40,60]); // vibración distinta para “código no existe”
         status.textContent = `CÓDIGO ${codigo} NO EXISTE / INCORRECTO`;
         status.className = "warn";
       }else{
         beepErr();
+        vibrar([200]); // vibración larga para error duro (opcional)
         status.textContent = "ERROR – no se pudo registrar";
         status.className = "err";
       }
