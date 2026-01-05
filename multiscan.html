@@ -10,6 +10,7 @@
   --verde:#39d353;
   --blanco:#ffffff;
   --rojo:#ff4d4d;
+  --amarillo:#ffb020; /* ✅ NUEVO: aviso código inválido */
 }
 *{ box-sizing:border-box; }
 
@@ -129,6 +130,7 @@ th{ color:#ddd; text-align:left; }
 
 .ok{ color:var(--verde); text-align:center; }
 .err{ color:var(--rojo); text-align:center; }
+.warn{ color:var(--amarillo); text-align:center; } /* ✅ NUEVO */
 </style>
 </head>
 
@@ -182,7 +184,7 @@ th{ color:#ddd; text-align:left; }
 <script>
 /* ================= CONFIG ================= */
 const APPSHEET_APP_ID = "134208bd-92de-4550-b09a-657cb1cbdf2e";
-const APPSHEET_KEY   = "V2-1yk0i-hFZLD-4XZ3z-n5RCB-Cl6iS-MocBD-nFdJb-Cta9q";
+const APPSHEET_KEY   = "V2-1yk0i-hFZLD-4XZ3z-n5RCBB-Cl6iS-MocBD-nFdJb-Cta9q";
 const TABLE_FACTURAS  = "SALIDAS FACTURAS";
 const TABLE_PRESTAMOS = "SALIDAS PRESTAMOS";
 /* ========================================= */
@@ -252,17 +254,48 @@ async function api(url, body){
     },
     body: JSON.stringify(body)
   });
-  if(!r.ok) throw await r.text();
+
+  // ✅ IMPORTANTE: leemos el texto para clasificar el error (código inválido vs error real)
+  const txt = await r.text();
+
+  if(!r.ok) throw (txt || ("HTTP " + r.status));
+
+  // si viene JSON lo devolvemos; si no, devolvemos texto
+  try { return JSON.parse(txt); } catch { return txt; }
 }
 
-/* ---------- BEEP ---------- */
-function beep(){
-  const ctx = new AudioContext();
+/* ---------- TONOS / VIBRACIÓN ---------- */
+function tone(freq, ms){
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
   const o = ctx.createOscillator();
-  o.frequency.value = 800;
+  o.frequency.value = freq;
   o.connect(ctx.destination);
   o.start();
-  setTimeout(()=>o.stop(),100);
+  setTimeout(()=>{ o.stop(); ctx.close?.(); }, ms);
+}
+
+// OK (como tu beep)
+function beep(){ tone(800, 100); }
+
+// ✅ NUEVOS tonos
+function beepWarn(){ tone(420, 140); } // código inválido / no existe
+function beepErr(){  tone(220, 220); } // error duro
+
+function vibrar(pattern){
+  try{
+    if(navigator.vibrate) navigator.vibrate(pattern);
+  }catch(_){}
+}
+
+// ✅ detector basado en el error real que tú mostraste:
+// "Invalid value for column CODIGO_ESCANEO: 12345"
+function esErrorCodigoInvalido(errText){
+  const t = String(errText || "").toLowerCase();
+  return (
+    (t.includes("invalid value for column") && t.includes("codigo_escaneo")) ||
+    t.includes("invalid value") ||
+    t.includes("can't add or update a row because of an invalid value")
+  );
 }
 
 /* ---------- ESCANEO ---------- */
@@ -270,7 +303,7 @@ input.addEventListener("keydown", async (e)=>{
   if(e.key === "Enter"){
     e.preventDefault();
 
-    const codigo = input.value.trim().replace(/\s+/g,"");
+    const codigo = input.value.trim().replace(/\s+/g,""); // ✅ guardamos para usarlo en el mensaje de error
     input.value = "";
     if(!codigo) return;
 
@@ -311,8 +344,19 @@ input.addEventListener("keydown", async (e)=>{
 
     }catch(err){
       console.error(err);
-      status.textContent = "ERROR – no se pudo registrar";
-      status.className = "err";
+
+      // ✅ NUEVO: mensaje con el código + vibración si es “código no existe”
+      if(esErrorCodigoInvalido(err)){
+        beepWarn();
+        vibrar([80, 60, 80]); // ✅ vibración corta-doble
+        status.textContent = `CÓDIGO ${codigo} NO EXISTE / INCORRECTO`;
+        status.className = "warn";
+      }else{
+        beepErr();
+        status.textContent = "ERROR – no se pudo registrar";
+        status.className = "err";
+      }
+
       setTimeout(() => input.focus(), 50);
     }
   }
@@ -330,8 +374,8 @@ function volver(){
     window.location.href = urlWeb;
   }, 600);
 }
-
 </script>
 
 </body>
 </html>
+
