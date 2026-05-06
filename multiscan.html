@@ -191,7 +191,7 @@ const TABLE_PRESTAMOS = "SALIDAS PRESTAMOS";
 
 /* ---------- PARAMS ---------- */
 const params = new URLSearchParams(location.search);
-const ORDEN_ID = Number(params.get("orden_id"));
+const ORDEN_ID = params.get("orden_id");
 const CLIENTE  = params.get("cliente") || "—";
 const TOTAL_INICIAL = Number(params.get("total") || 0);
 
