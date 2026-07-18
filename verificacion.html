@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Verificación de ubicación</title>
+<style>
+:root{
+  --verde:#39d353;
+  --rojo:#ff4d4d;
+  --amarillo:#ffb020;
+  --azul:#5db6ff;
+  --blanco:#fff;
+  --negro:#080808;
+  --panel:rgba(0,0,0,.62);
+  --borde:rgba(255,255,255,.15);
+}
+*{box-sizing:border-box}
+html,body{min-height:100%;margin:0}
+body{
+  font-family:Arial,Helvetica,sans-serif;
+  color:var(--blanco);
+  background:
+    linear-gradient(rgba(0,0,0,.70),rgba(0,0,0,.70)),
+    url("https://w0.peakpx.com/wallpaper/551/953/HD-wallpaper-solar-system-space-planets-universe-sparkles-star-galaxy.jpg") center/cover fixed;
+}
+button,input{font:inherit}
+.topbar{
+  position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;background:rgba(0,0,0,.86);border-bottom:1px solid var(--borde)
+}
+.logo-box{background:#fff;padding:6px 10px;border-radius:10px;display:flex;align-items:center}
+.logo-box img{height:27px;max-width:180px;object-fit:contain}
+.btn{
+  border:1px solid rgba(255,255,255,.22);background:#161616;color:#fff;padding:10px 13px;
+  border-radius:10px;font-weight:700;min-height:42px
+}
+.btn:disabled{opacity:.45}
+.btn-primary{background:#176d2b;border-color:#2ebd4e}
+.btn-danger{background:#7a1f1f;border-color:#d84b4b}
+.btn-warning{background:#74520a;border-color:#d79a17}
+.wrap{max-width:850px;margin:0 auto;padding:14px 12px 42px;text-align:center}
+h1{font-size:23px;margin:10px 0 4px;letter-spacing:.8px;text-transform:uppercase}
+.sub{opacity:.85;font-size:14px;margin-bottom:10px}
+.location-banner{
+  display:none;background:var(--panel);border:1px solid var(--borde);border-radius:14px;padding:10px 12px;margin:10px 0;
+  font-size:15px
+}
+.location-banner b{color:var(--azul);font-size:18px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.card{background:var(--panel);border:1px solid var(--borde);border-radius:13px;padding:10px 6px;min-height:69px}
+.card span{display:block;font-size:12px;opacity:.82}
+.card b{display:block;font-size:23px;margin-top:4px;color:var(--verde)}
+.card.error b{color:var(--rojo)}
+.card.warning b{color:var(--amarillo)}
+#scanInput{
+  width:100%;margin:8px 0;font-size:22px;padding:15px 12px;border-radius:13px;border:2px solid #444;
+  background:rgba(0,0,0,.72);color:#fff;text-align:center;outline:none
+}
+#scanInput:focus{border-color:var(--verde);box-shadow:0 0 0 3px rgba(57,211,83,.18)}
+.status{
+  min-height:58px;margin:8px 0;padding:10px;border-radius:12px;background:var(--panel);border:1px solid var(--borde);
+  display:flex;align-items:center;justify-content:center;white-space:pre-line;font-weight:700
+}
+.status.ok{border-color:rgba(57,211,83,.8);color:var(--verde)}
+.status.err{border-color:rgba(255,77,77,.8);color:var(--rojo)}
+.status.warn{border-color:rgba(255,176,32,.8);color:var(--amarillo)}
+.status.info{border-color:rgba(93,182,255,.8);color:var(--azul)}
+.actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:10px 0}
+.table-wrap{overflow:auto;border-radius:13px;border:1px solid var(--borde);background:rgba(0,0,0,.66)}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:630px}
+th,td{padding:9px 8px;border-bottom:1px solid #292929;text-align:left}
+th{position:sticky;top:0;background:#101010;color:#ddd;z-index:2}
+td.num,th.num{text-align:center}
+.row-ok td:last-child{color:var(--verde)}
+.row-missing td:last-child,.row-excess td:last-child,.row-unexpected td:last-child{color:var(--rojo);font-weight:700}
+.empty{padding:24px;opacity:.7}
+
+.filter-bar{display:none;gap:8px;justify-content:center;flex-wrap:wrap;margin:8px 0 10px}
+.issue-panel{display:none;text-align:left;margin:10px 0}
+.issue-header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid rgba(255,176,32,.65);background:rgba(0,0,0,.72);border-radius:12px;margin-bottom:8px}
+.issue-header strong{color:var(--amarillo)}
+.issue-list{display:grid;gap:9px}
+.issue-card{display:grid;grid-template-columns:72px 1fr;gap:11px;align-items:center;padding:10px;background:rgba(0,0,0,.78);border:1px solid var(--borde);border-radius:13px}
+.issue-card.excess,.issue-card.unexpected{border-color:rgba(255,77,77,.75)}
+.issue-card.missing{border-color:rgba(255,176,32,.75)}
+.issue-thumb{width:72px;height:72px;border-radius:10px;overflow:hidden;background:#151515;border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;color:#888;font-size:10px;text-align:center}
+.issue-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.issue-code{font-weight:800;font-size:16px;color:#fff;word-break:break-word}
+.issue-description{font-size:13px;opacity:.86;margin:3px 0 6px}
+.issue-counts{font-size:13px;display:flex;gap:12px;flex-wrap:wrap}
+.issue-state{font-weight:800;margin-top:5px}
+.issue-card.missing .issue-state{color:var(--amarillo)}
+.issue-card.excess .issue-state,.issue-card.unexpected .issue-state{color:var(--rojo)}
+@media(max-width:520px){.issue-card{grid-template-columns:62px 1fr}.issue-thumb{width:62px;height:62px}}
+.footer-note{font-size:12px;opacity:.7;margin-top:12px}
+.result-box{display:none;background:var(--panel);border:2px solid var(--borde);border-radius:16px;padding:18px;margin-top:12px}
+.result-box.ok{border-color:var(--verde)}
+.result-box.err{border-color:var(--rojo)}
+.result-box h2{margin:0 0 10px}
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;text-align:left;max-width:480px;margin:0 auto}
+.busy::after{content:"";display:inline-block;width:13px;height:13px;margin-left:8px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:650px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  h1{font-size:19px}
+  .btn{flex:1}
+}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo-box"><img src="https://revstudio.design/wp-content/uploads/2023/10/RevStudio-logo.png" alt="RevStudio"></div>
+  <button class="btn" onclick="volver()">⬅ Volver</button>
+</div>
+
+<main class="wrap">
+  <h1>Verificación de ubicación</h1>
+  <div class="sub" id="subtitle">Primero escanee el código de la ubicación</div>
+
+  <div class="location-banner" id="locationBanner">
+    Ubicación: <b id="locationText">—</b> · Bodega: <span id="warehouseText">—</span>
+  </div>
+
+  <section class="stats" id="stats">
+    <div class="card"><span>Esperadas</span><b id="expectedUnits">0</b></div>
+    <div class="card"><span>Válidas</span><b id="validUnits">0</b></div>
+    <div class="card warning"><span>Faltantes</span><b id="missingUnits">0</b></div>
+    <div class="card error"><span>Errores</span><b id="errorUnits">0</b></div>
+  </section>
+
+  <input id="scanInput" type="text" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" inputmode="none" placeholder="Escanee ubicación…">
+  <div id="status" class="status info">LISTO PARA ESCANEAR UBICACIÓN</div>
+
+  <div class="actions">
+    <button id="undoBtn" class="btn btn-warning" onclick="undoLast()" disabled>↶ Deshacer último</button>
+    <button id="finishBtn" class="btn btn-primary" onclick="finishVerification()" disabled>✓ Finalizar</button>
+    <button id="resetBtn" class="btn btn-danger" onclick="resetVerification()">⟳ Nueva verificación</button>
+  </div>
+
+  <div id="filterBar" class="filter-bar">
+    <button id="issuesToggleBtn" class="btn btn-warning" onclick="toggleIssuesView()">⚠ Solo pendientes</button>
+  </div>
+
+  <section id="issuePanel" class="issue-panel">
+    <div class="issue-header">
+      <strong id="issueTitle">PENDIENTES Y DIFERENCIAS</strong>
+      <span id="issueCount">0 códigos</span>
+    </div>
+    <div id="issueList" class="issue-list"></div>
+  </section>
+
+  <div class="table-wrap" id="tableWrap">
+    <div class="empty" id="emptyMessage">La lista aparecerá después de escanear una ubicación.</div>
+    <table id="detailTable" hidden>
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Descripción</th>
+          <th class="num">Esperado</th>
+          <th class="num">Escaneado</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody id="detailBody"></tbody>
+    </table>
+  </div>
+
+  <section id="resultBox" class="result-box">
+    <h2 id="resultTitle">Resultado</h2>
+    <div class="result-grid" id="resultGrid"></div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="regresarAppSheetActualizar()">↩ Ver verificación guardada en AppSheet</button>
+      <button class="btn btn-danger" onclick="resetVerification()">Nueva verificación</button>
+    </div>
+  </section>
+
+  <div class="footer-note">Los artículos correctos se cuentan temporalmente en la Zebra. AppSheet recibe únicamente el encabezado de la verificación y los códigos con diferencias.</div>
+</main>
+
+<script>
+"use strict";
+
+// Reemplazar por la URL publicada de Cloudflare Worker.
+const DEFAULT_WORKER_URL = "https://revstudio-verificacion.bodegarevinterior.workers.dev";
+const APP_ID = "134208bd-92de-4550-b09a-657cb1cbdf2e";
+const STORAGE_KEY = "revstudio_verificacion_ubicacion_v1";
+const params = new URLSearchParams(location.search);
+const WORKER_URL = (params.get("api") || DEFAULT_WORKER_URL).replace(/\/$/, "");
+const USER_EMAIL = params.get("usuario") || params.get("user") || "";
+const DEVICE = params.get("dispositivo") || navigator.userAgent;
+const BACK_VIEW = params.get("back_view") || "VERIFICACIONES";
+const BACK_DETAIL_VIEW = params.get("back_detail_view") || "VERIFICACIONES UBICACION_Detail";
+
+const input = document.getElementById("scanInput");
+const statusEl = document.getElementById("status");
+const finishBtn = document.getElementById("finishBtn");
+const undoBtn = document.getElementById("undoBtn");
+const detailTable = document.getElementById("detailTable");
+const detailBody = document.getElementById("detailBody");
+const emptyMessage = document.getElementById("emptyMessage");
+
+let state = createEmptyState();
+let queue = [];
+let processingQueue = false;
+let submitting = false;
+let onlyIssues = false;
+let loadingImages = false;
+let imageLookupDone = new Set();
+
+function createEmptyState(){
+  return {
+    version:1,
+    phase:"location",
+    verificationId:crypto.randomUUID(),
+    location:"",
+    warehouse:"",
+    startedAt:"",
+    initialHash:"",
+    expected:{},
+    unexpected:{},
+    totalReadings:0,
+    history:[],
+    savedVerificationId:""
+  };
+}
+
+function normalize(value){
+  return String(value || "").trim().replace(/\s+/g, "").toUpperCase();
+}
+
+function escapeHtml(value){
+  return String(value ?? "")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+}
+
+function persist(){
+  if(state.phase === "scanning") localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function restore(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(!raw) return;
+  try{
+    const saved = JSON.parse(raw);
+    if(saved?.version === 1 && saved.phase === "scanning" && saved.location){
+      state = saved;
+      setStatus(`SESIÓN RECUPERADA\n${state.location}`, "info");
+    }
+  }catch(_){
+    localStorage.removeItem(STORAGE_KEY);
+  }
+}
+
+function setStatus(message, type="info", busy=false){
+  statusEl.textContent = message;
+  statusEl.className = `status ${type}${busy ? " busy" : ""}`;
+}
+
+function setBusy(value){
+  input.disabled = value;
+  finishBtn.disabled = value || state.phase !== "scanning";
+  undoBtn.disabled = value || state.phase !== "scanning" || !state.history.length;
+  if(!value) setTimeout(()=>input.focus(), 40);
+}
+
+async function post(path, payload){
+  if(WORKER_URL.includes("REEMPLAZAR-POR-TU-WORKER")){
+    throw new Error("Primero configure la URL de Cloudflare Worker en verificacion.html");
+  }
+  const response = await fetch(`${WORKER_URL}${path}`, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(payload)
+  });
+  const text = await response.text();
+  let data;
+  try{data=JSON.parse(text)}catch{data={ok:false,error:text || `HTTP ${response.status}`}}
+  if(!response.ok || !data.ok) throw new Error(data.error || `HTTP ${response.status}`);
+  return data;
+}
+
+input.addEventListener("keydown", (event)=>{
+  if(event.key !== "Enter") return;
+  event.preventDefault();
+  const value = normalize(input.value);
+  input.value = "";
+  if(!value || submitting) return;
+  queue.push(value);
+  drainQueue();
+});
+
+async function drainQueue(){
+  if(processingQueue) return;
+  processingQueue = true;
+  while(queue.length){
+    const code = queue.shift();
+    try{
+      if(state.phase === "location") await startVerification(code);
+      else if(state.phase === "scanning") await processItem(code);
+    }catch(error){
+      setBusy(false);
+      beepError(); vibrate([180]);
+      setStatus(`ERROR\n${error.message}`, "err");
+    }
+  }
+  processingQueue = false;
+  setTimeout(()=>input.focus(), 50);
+}
+
+async function startVerification(locationCode){
+  setBusy(true);
+  setStatus(`BUSCANDO ${locationCode}…`, "info", true);
+  try{
+    const data = await post("/start", {
+      verificationId:state.verificationId,
+      location:locationCode,
+      user:USER_EMAIL,
+      device:DEVICE
+    });
+
+    state = createEmptyState();
+    state.phase = "scanning";
+    state.verificationId = data.verificationId;
+    state.location = data.location;
+    state.warehouse = data.warehouse || "—";
+    state.startedAt = data.startedAt;
+    state.initialHash = data.initialHash;
+
+    for(const item of data.items){
+      const code = normalize(item.code);
+      state.expected[code] = {
+        code,
+        description:item.description || "",
+        expected:Number(item.expected) || 0,
+        scanned:0,
+        imageUrl:item.imageUrl || ""
+      };
+    }
+
+    input.placeholder = "Escanee artículos…";
+    document.getElementById("subtitle").textContent = "Escanee continuamente los artículos de esta ubicación";
+    beepOk(); vibrate([45]);
+    setStatus(`UBICACIÓN CARGADA\n${data.totalCodes} códigos · ${data.totalUnits} unidades`, "ok");
+    persist();
+    render();
+  }finally{
+    setBusy(false);
+  }
+}
+
+async function processItem(code){
+  if(state.expected[code]){
+    state.totalReadings++;
+    const item = state.expected[code];
+    item.scanned++;
+    state.history.push({kind:"expected",code});
+
+    if(item.scanned <= item.expected){
+      beepOk(); vibrate([35]);
+      setStatus(`✓ ${code}\nCORRECTO ${item.scanned} DE ${item.expected}`, "ok");
+    }else{
+      beepError(); vibrate([180,60,180]);
+      setStatus(`✕ ${code}\nEXCESO ${item.scanned} DE ${item.expected}`, "err");
+    }
+    persist(); render();
+    return;
+  }
+
+  let unexpected = state.unexpected[code];
+  if(!unexpected){
+    setBusy(true);
+    setStatus(`CONSULTANDO ${code}…`, "info", true);
+    try{
+      const lookup = await post("/lookup", {code, location:state.location});
+      unexpected = state.unexpected[code] = {
+        code,
+        description:lookup.description || "",
+        type:lookup.type,
+        registeredLocations:lookup.locationsText || "",
+        scanned:0,
+        imageUrl:lookup.imageUrl || ""
+      };
+    }finally{
+      setBusy(false);
+    }
+  }
+
+  state.totalReadings++;
+  unexpected.scanned++;
+  state.history.push({kind:"unexpected",code});
+
+  if(unexpected.type === "NO PERTENECE"){
+    beepNotBelonging(); vibrate([120,55,120]);
+    setStatus(`✕ ${code}\nNO PERTENECE\n${unexpected.registeredLocations || "Otra ubicación"}`, "err");
+  }else{
+    beepUnregistered(); vibrate([70,45,70,45,70]);
+    setStatus(`✕ ${code}\nCÓDIGO NO REGISTRADO`, "warn");
+  }
+  persist(); render();
+}
+
+function calculate(){
+  let totalExpectedCodes=0,totalExpectedUnits=0,totalValidUnits=0,totalMissing=0,totalExcess=0;
+  let totalNotBelonging=0,totalUnregistered=0,totalScannedCodes=0;
+  const errors=[];
+
+  for(const item of Object.values(state.expected)){
+    totalExpectedCodes++;
+    totalExpectedUnits += item.expected;
+    totalValidUnits += Math.min(item.scanned,item.expected);
+    if(item.scanned>0) totalScannedCodes++;
+
+    if(item.scanned < item.expected){
+      const difference=item.scanned-item.expected;
+      totalMissing += Math.abs(difference);
+      errors.push({
+        type:"FALTANTE",code:item.code,description:item.description,
+        expected:item.expected,scanned:item.scanned,difference,
+        registeredLocations:state.location,observation:""
+      });
+    }else if(item.scanned > item.expected){
+      const difference=item.scanned-item.expected;
+      totalExcess += difference;
+      errors.push({
+        type:"EXCESO",code:item.code,description:item.description,
+        expected:item.expected,scanned:item.scanned,difference,
+        registeredLocations:state.location,observation:""
+      });
+    }
+  }
+
+  for(const item of Object.values(state.unexpected)){
+    if(item.scanned<=0) continue;
+    totalScannedCodes++;
+    if(item.type === "NO PERTENECE") totalNotBelonging += item.scanned;
+    else totalUnregistered += item.scanned;
+    errors.push({
+      type:item.type,code:item.code,description:item.description,
+      expected:0,scanned:item.scanned,difference:item.scanned,
+      registeredLocations:item.registeredLocations,observation:""
+    });
+  }
+
+  return {
+    summary:{
+      totalExpectedCodes,totalExpectedUnits,totalReadings:state.totalReadings,
+      totalScannedCodes,totalValidUnits,totalMissing,totalExcess,
+      totalNotBelonging,totalUnregistered
+    },
+    errors
+  };
+}
+
+async function finishVerification(){
+  if(state.phase !== "scanning" || submitting) return;
+  const calc=calculate();
+  const message=`¿Finalizar ${state.location}?\n\nEsperadas: ${calc.summary.totalExpectedUnits}\nVálidas: ${calc.summary.totalValidUnits}\nFaltantes: ${calc.summary.totalMissing}\nExcesos: ${calc.summary.totalExcess}\nNo pertenecen: ${calc.summary.totalNotBelonging}\nNo registrados: ${calc.summary.totalUnregistered}`;
+  if(!window.confirm(message)) return;
+
+  submitting=true;
+  setBusy(true);
+  setStatus("GUARDANDO VERIFICACIÓN…", "info", true);
+  try{
+    const result=await post("/finish", {
+      verificationId:state.verificationId,
+      location:state.location,
+      warehouse:state.warehouse,
+      user:USER_EMAIL,
+      device:DEVICE,
+      startedAt:state.startedAt,
+      initialHash:state.initialHash,
+      summary:calc.summary,
+      errors:calc.errors,
+      observation:""
+    });
+
+    localStorage.removeItem(STORAGE_KEY);
+    state.savedVerificationId=result.verificationId || state.verificationId;
+    state.phase="finished";
+    queue=[];
+    onlyIssues = false;
+    showFinalResult(result,calc);
+    if(result.result === "OK"){
+      beepSuccess(); vibrate([60,45,60]);
+      setStatus("✓ VERIFICACIÓN CORRECTA", "ok");
+    }else if(result.result === "INVENTARIO MODIFICADO"){
+      beepError(); vibrate([200,80,200]);
+      setStatus("INVENTARIO MODIFICADO DURANTE EL CONTEO", "warn");
+    }else{
+      beepError(); vibrate([200]);
+      setStatus("VERIFICACIÓN GUARDADA CON DIFERENCIAS", "err");
+    }
+  }catch(error){
+    setStatus(`NO SE PUDO GUARDAR\n${error.message}\nPuede presionar Finalizar para reintentar.`, "err");
+    submitting=false;
+    setBusy(false);
+    return;
+  }
+  submitting=false;
+  render();
+}
+
+function undoLast(){
+  if(state.phase!=="scanning" || !state.history.length || submitting) return;
+  const last=state.history.pop();
+  state.totalReadings=Math.max(0,state.totalReadings-1);
+  if(last.kind==="expected" && state.expected[last.code]){
+    state.expected[last.code].scanned=Math.max(0,state.expected[last.code].scanned-1);
+  }
+  if(last.kind==="unexpected" && state.unexpected[last.code]){
+    state.unexpected[last.code].scanned=Math.max(0,state.unexpected[last.code].scanned-1);
+  }
+  beepUndo(); vibrate([30]);
+  setStatus(`↶ ÚLTIMO ESCANEO ELIMINADO\n${last.code}`, "info");
+  persist(); render();
+}
+
+function resetVerification(){
+  if(state.phase==="scanning" && state.totalReadings>0){
+    if(!window.confirm("¿Cancelar esta verificación y borrar el conteo temporal?")) return;
+  }
+  localStorage.removeItem(STORAGE_KEY);
+  state=createEmptyState();
+  queue=[];
+  submitting=false;
+  onlyIssues=false;
+  imageLookupDone = new Set();
+  input.disabled=false;
+  input.placeholder="Escanee ubicación…";
+  document.getElementById("subtitle").textContent="Primero escanee el código de la ubicación";
+  document.getElementById("resultBox").style.display="none";
+  setStatus("LISTO PARA ESCANEAR UBICACIÓN","info");
+  render();
+  setTimeout(()=>input.focus(),50);
+}
+
+function getIssueItems(){
+  const items=[];
+  for(const item of Object.values(state.expected)){
+    if(item.scanned===item.expected) continue;
+    const missing=item.scanned<item.expected;
+    items.push({
+      kind:missing?"missing":"excess",
+      code:item.code,
+      description:item.description,
+      expected:item.expected,
+      scanned:item.scanned,
+      imageUrl:item.imageUrl||"",
+      label:missing?`FALTAN ${item.expected-item.scanned}`:`EXCESO +${item.scanned-item.expected}`,
+      priority:missing?2:1
+    });
+  }
+  for(const item of Object.values(state.unexpected)){
+    if(item.scanned<=0) continue;
+    items.push({
+      kind:"unexpected",code:item.code,description:item.description||item.registeredLocations,
+      expected:0,scanned:item.scanned,imageUrl:item.imageUrl||"",label:item.type,priority:0
+    });
+  }
+  return items.sort((a,b)=>a.priority-b.priority||a.code.localeCompare(b.code));
+}
+
+function renderIssueCards(issues){
+  const panel=document.getElementById("issuePanel");
+  const list=document.getElementById("issueList");
+  document.getElementById("issueCount").textContent=`${issues.length} código${issues.length===1?"":"s"}`;
+  if(!onlyIssues){panel.style.display="none";list.innerHTML="";return}
+  panel.style.display="block";
+  if(!issues.length){
+    list.innerHTML='<div class="status ok">✓ NO HAY PENDIENTES NI DIFERENCIAS</div>';
+    return;
+  }
+  list.innerHTML=issues.map(item=>{
+    const thumb=item.imageUrl
+      ? `<div class="issue-thumb"><img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.code)}" loading="lazy" onerror="this.style.display='none';this.parentElement.textContent='SIN FOTO'"></div>`
+      : '<div class="issue-thumb">SIN FOTO</div>';
+    return `<article class="issue-card ${item.kind}">${thumb}<div><div class="issue-code">${escapeHtml(item.code)}</div><div class="issue-description">${escapeHtml(item.description||"Sin descripción")}</div><div class="issue-counts"><span>Esperado: <b>${item.expected}</b></span><span>Escaneado: <b>${item.scanned}</b></span></div><div class="issue-state">${escapeHtml(item.label)}</div></div></article>`;
+  }).join("");
+}
+
+function render(){
+  const calc=calculate();
+  document.getElementById("expectedUnits").textContent=calc.summary.totalExpectedUnits;
+  document.getElementById("validUnits").textContent=calc.summary.totalValidUnits;
+  document.getElementById("missingUnits").textContent=calc.summary.totalMissing;
+  document.getElementById("errorUnits").textContent=calc.summary.totalExcess+calc.summary.totalNotBelonging+calc.summary.totalUnregistered;
+
+  const scanning=state.phase==="scanning";
+  const finished=state.phase==="finished";
+  input.disabled=finished||submitting;
+  document.getElementById("locationBanner").style.display=scanning||finished?"block":"none";
+  document.getElementById("locationText").textContent=state.location||"—";
+  document.getElementById("warehouseText").textContent=state.warehouse||"—";
+  finishBtn.disabled=!scanning||submitting;
+  undoBtn.disabled=!scanning||submitting||!state.history.length;
+
+  const issues=getIssueItems();
+  const filterBar=document.getElementById("filterBar");
+  filterBar.style.display=finished?"flex":"none";
+  const toggle=document.getElementById("issuesToggleBtn");
+  toggle.textContent=onlyIssues?"☰ Ver todos":"⚠ Solo pendientes";
+  toggle.className=`btn ${onlyIssues?"btn-primary":"btn-warning"}`;
+  renderIssueCards(issues);
+
+  const rows=[];
+  const expectedSorted=Object.values(state.expected).sort((a,b)=>{
+    const pa=a.scanned>a.expected?1:(a.scanned<a.expected?2:4);
+    const pb=b.scanned>b.expected?1:(b.scanned<b.expected?2:4);
+    return pa-pb||a.code.localeCompare(b.code);
+  });
+  for(const item of expectedSorted){
+    const isIssue=item.scanned!==item.expected;
+    if(onlyIssues&&!isIssue) continue;
+    let label="OK",cls="row-ok";
+    if(item.scanned>item.expected){label=`EXCESO +${item.scanned-item.expected}`;cls="row-excess"}
+    else if(item.scanned<item.expected){label=`FALTAN ${item.expected-item.scanned}`;cls="row-missing"}
+    rows.push(`<tr class="${cls}"><td>${escapeHtml(item.code)}</td><td>${escapeHtml(item.description)}</td><td class="num">${item.expected}</td><td class="num">${item.scanned}</td><td>${label}</td></tr>`);
+  }
+  const unexpectedSorted=Object.values(state.unexpected).filter(x=>x.scanned>0).sort((a,b)=>a.code.localeCompare(b.code));
+  for(const item of unexpectedSorted){
+    rows.unshift(`<tr class="row-unexpected"><td>${escapeHtml(item.code)}</td><td>${escapeHtml(item.description||item.registeredLocations)}</td><td class="num">0</td><td class="num">${item.scanned}</td><td>${escapeHtml(item.type)}</td></tr>`);
+  }
+
+  detailBody.innerHTML=rows.join("");
+  detailTable.hidden=!rows.length;
+  emptyMessage.style.display=rows.length?"none":"block";
+  if(!rows.length&&onlyIssues) emptyMessage.textContent="No hay pendientes ni diferencias.";
+  else if(!rows.length) emptyMessage.textContent="La lista aparecerá después de escanear una ubicación.";
+}
+
+function toggleIssuesView(){
+  if(state.phase!=="finished") return;
+  onlyIssues=!onlyIssues;
+  render();
+  if(onlyIssues){
+    const codes=getIssueItems().map(item=>item.code);
+    loadIssueImages(codes);
+    document.getElementById("issuePanel").scrollIntoView({behavior:"smooth",block:"start"});
+  }
+}
+
+async function loadIssueImages(codes){
+  const unique=[...new Set((codes||[]).map(normalize).filter(Boolean))]
+    .filter(code=>!imageLookupDone.has(code));
+  if(!unique.length||loadingImages) return;
+
+  loadingImages=true;
+  unique.forEach(code=>imageLookupDone.add(code));
+  const title=document.getElementById("issueTitle");
+  const previousTitle=title.textContent;
+  title.textContent="BUSCANDO FOTOS…";
+
+  try{
+    const data=await post("/images",{codes:unique});
+    for(const [rawCode,url] of Object.entries(data.images||{})){
+      const code=normalize(rawCode);
+      if(state.expected[code]) state.expected[code].imageUrl=url;
+      if(state.unexpected[code]) state.unexpected[code].imageUrl=url;
+    }
+    render();
+  }catch(error){
+    console.warn("Imágenes no disponibles",error);
+  }finally{
+    loadingImages=false;
+    title.textContent=previousTitle;
+  }
+}
+
+function showFinalResult(result,calc){
+  const box=document.getElementById("resultBox");
+  box.style.display="block";
+  box.className=`result-box ${result.result==="OK"?"ok":"err"}`;
+  document.getElementById("resultTitle").textContent=result.result;
+  const values=[
+    ["Ubicación",state.location],
+    ["Esperadas",calc.summary.totalExpectedUnits],
+    ["Válidas",calc.summary.totalValidUnits],
+    ["Faltantes",calc.summary.totalMissing],
+    ["Excesos",calc.summary.totalExcess],
+    ["No pertenecen",calc.summary.totalNotBelonging],
+    ["No registrados",calc.summary.totalUnregistered],
+    ["Errores guardados",result.errorsSaved]
+  ];
+  document.getElementById("resultGrid").innerHTML=values.map(([k,v])=>`<b>${escapeHtml(k)}</b><span>${escapeHtml(v)}</span>`).join("");
+  (onlyIssues?document.getElementById("issuePanel"):box).scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+function tone(freq,ms,type="sine",gain=.23){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const osc=ctx.createOscillator();const volume=ctx.createGain();
+    osc.type=type;osc.frequency.value=freq;
+    volume.gain.setValueAtTime(.0001,ctx.currentTime);
+    volume.gain.exponentialRampToValueAtTime(gain,ctx.currentTime+.01);
+    volume.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+ms/1000);
+    osc.connect(volume);volume.connect(ctx.destination);osc.start();
+    setTimeout(()=>{osc.stop();ctx.close?.()},ms+40);
+  }catch(_){}
+}
+function beepOk(){tone(900,85)}
+function beepError(){tone(220,230,"sawtooth")}
+function beepNotBelonging(){tone(320,100,"square");setTimeout(()=>tone(320,100,"square"),150)}
+function beepUnregistered(){tone(520,70,"square");setTimeout(()=>tone(520,70,"square"),110);setTimeout(()=>tone(520,70,"square"),220)}
+function beepUndo(){tone(650,80,"sine")}
+function beepSuccess(){tone(700,90);setTimeout(()=>tone(900,90),120);setTimeout(()=>tone(1150,130),240)}
+function vibrate(pattern){try{navigator.vibrate?.(pattern)}catch(_){}}
+
+function buildAppSheetReturnUrls(forceSync=false, openSavedDetail=false){
+  const custom=params.get("back_url");
+  if(custom){
+    return {appUrl:custom,webUrl:custom};
+  }
+
+  // Para una vista Detail, AppSheet necesita también la llave de la fila.
+  // El Worker devuelve verificationId después de guardar, por lo que podemos
+  // abrir exactamente la verificación recién creada.
+  const savedId=state.savedVerificationId || state.verificationId;
+  const useDetail=openSavedDetail && state.phase==="finished" && savedId;
+  const targetView=useDetail ? BACK_DETAIL_VIEW : BACK_VIEW;
+
+  let fragment=`#view=${encodeURIComponent(targetView)}`;
+  if(useDetail){
+    fragment += `&row=${encodeURIComponent(savedId)}`;
+  }
+  if(forceSync){
+    fragment += `&at=${encodeURIComponent(new Date(Date.now()+60000).toISOString())}`;
+  }
+
+  return {
+    appUrl:`appsheet://www.appsheet.com/start/${APP_ID}${fragment}`,
+    webUrl:`https://www.appsheet.com/start/${APP_ID}${fragment}`
+  };
+}
+
+function openAppSheet(forceSync=false, openSavedDetail=false){
+  const {appUrl,webUrl}=buildAppSheetReturnUrls(forceSync,openSavedDetail);
+  location.href=appUrl;
+  setTimeout(()=>{location.href=webUrl},900);
+}
+
+function regresarAppSheetActualizar(){
+  setStatus("REGRESANDO A LA VERIFICACIÓN GUARDADA Y ACTUALIZANDO…", "info", true);
+  openAppSheet(true,true);
+}
+
+function volver(){
+  // Después de guardar, vuelve al detalle de la fila recién creada y fuerza Sync.
+  // Antes de guardar, vuelve a la vista general configurada en back_view.
+  const finished=state.phase==="finished";
+  openAppSheet(finished,finished);
+}
+
+window.addEventListener("load",()=>{
+  restore();
+  render();
+  if(state.phase==="scanning"){
+    input.placeholder="Escanee artículos…";
+    document.getElementById("subtitle").textContent="Sesión recuperada; continúe escaneando";
+  }
+  setTimeout(()=>input.focus(),250);
+});
+</script>
+</body>
+</html>
