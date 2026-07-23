@@ -1,0 +1,1929 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Verificación de ubicación · Pendientes antes de finalizar</title>
+<style>
+:root{
+  --verde:#39d353;
+  --rojo:#ff4d4d;
+  --amarillo:#ffb020;
+  --azul:#5db6ff;
+  --blanco:#fff;
+  --negro:#080808;
+  --panel:rgba(0,0,0,.62);
+  --borde:rgba(255,255,255,.15);
+}
+*{box-sizing:border-box}
+html,body{min-height:100%;margin:0}
+body{
+  font-family:Arial,Helvetica,sans-serif;
+  color:var(--blanco);
+  background:
+    linear-gradient(rgba(0,0,0,.70),rgba(0,0,0,.70)),
+    url("https://w0.peakpx.com/wallpaper/551/953/HD-wallpaper-solar-system-space-planets-universe-sparkles-star-galaxy.jpg") center/cover fixed;
+}
+button,input{font:inherit}
+.topbar{
+  position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;background:rgba(0,0,0,.86);border-bottom:1px solid var(--borde)
+}
+.logo-box{background:#fff;padding:6px 10px;border-radius:10px;display:flex;align-items:center}
+.logo-box img{height:27px;max-width:180px;object-fit:contain}
+.btn{
+  border:1px solid rgba(255,255,255,.22);background:#161616;color:#fff;padding:10px 13px;
+  border-radius:10px;font-weight:700;min-height:42px
+}
+.btn:disabled{opacity:.45}
+.btn-primary{background:#176d2b;border-color:#2ebd4e}
+.btn-danger{background:#7a1f1f;border-color:#d84b4b}
+.btn-warning{background:#74520a;border-color:#d79a17}
+.wrap{max-width:850px;margin:0 auto;padding:14px 12px 42px;text-align:center}
+h1{font-size:23px;margin:10px 0 4px;letter-spacing:.8px;text-transform:uppercase}
+.sub{opacity:.85;font-size:14px;margin-bottom:10px}
+.location-banner{
+  display:none;background:var(--panel);border:1px solid var(--borde);border-radius:14px;padding:10px 12px;margin:10px 0;
+  font-size:15px
+}
+.location-banner b{color:var(--azul);font-size:18px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.card{background:var(--panel);border:1px solid var(--borde);border-radius:13px;padding:10px 6px;min-height:69px}
+.card span{display:block;font-size:12px;opacity:.82}
+.card b{display:block;font-size:23px;margin-top:4px;color:var(--verde)}
+.card.error b{color:var(--rojo)}
+.card.warning b{color:var(--amarillo)}
+#scanInput{
+  width:100%;margin:8px 0;font-size:22px;padding:15px 12px;border-radius:13px;border:2px solid #444;
+  background:rgba(0,0,0,.72);color:#fff;text-align:center;outline:none
+}
+#scanInput:focus{border-color:var(--verde);box-shadow:0 0 0 3px rgba(57,211,83,.18)}
+.status{
+  min-height:58px;margin:8px 0;padding:10px;border-radius:12px;background:var(--panel);border:1px solid var(--borde);
+  display:flex;align-items:center;justify-content:center;white-space:pre-line;font-weight:700
+}
+.status.ok{border-color:rgba(57,211,83,.8);color:var(--verde)}
+.status.err{border-color:rgba(255,77,77,.8);color:var(--rojo)}
+.status.warn{border-color:rgba(255,176,32,.8);color:var(--amarillo)}
+.status.info{border-color:rgba(93,182,255,.8);color:var(--azul)}
+.actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:10px 0}
+.table-wrap{overflow:auto;border-radius:13px;border:1px solid var(--borde);background:rgba(0,0,0,.66)}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:630px}
+th,td{padding:9px 8px;border-bottom:1px solid #292929;text-align:left}
+th{position:sticky;top:0;background:#101010;color:#ddd;z-index:2}
+td.num,th.num{text-align:center}
+.row-ok td:last-child{color:var(--verde)}
+.row-missing td:last-child,.row-excess td:last-child,.row-unexpected td:last-child{color:var(--rojo);font-weight:700}
+.empty{padding:24px;opacity:.7}
+
+.filter-bar{display:none;gap:8px;justify-content:center;flex-wrap:wrap;margin:8px 0 10px}
+.issue-panel{display:none;text-align:left;margin:10px 0}
+.issue-header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid rgba(255,176,32,.65);background:rgba(0,0,0,.72);border-radius:12px;margin-bottom:8px}
+.issue-header strong{color:var(--amarillo)}
+.issue-list{display:grid;gap:9px}
+.issue-card{display:grid;grid-template-columns:72px 1fr;gap:11px;align-items:center;padding:10px;background:rgba(0,0,0,.78);border:1px solid var(--borde);border-radius:13px}
+.issue-card.excess,.issue-card.unexpected{border-color:rgba(255,77,77,.75)}
+.issue-card.missing{border-color:rgba(255,176,32,.75)}
+.issue-thumb{width:72px;height:72px;border-radius:10px;overflow:hidden;background:#151515;border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;color:#888;font-size:10px;text-align:center}
+.issue-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.issue-code{font-weight:800;font-size:16px;color:#fff;word-break:break-word}
+.issue-description{font-size:13px;opacity:.86;margin:3px 0 6px}
+.issue-counts{font-size:13px;display:flex;gap:12px;flex-wrap:wrap}
+.issue-state{font-weight:800;margin-top:5px}
+.issue-card.missing .issue-state{color:var(--amarillo)}
+.issue-card.excess .issue-state,.issue-card.unexpected .issue-state{color:var(--rojo)}
+.issue-action{margin-top:9px;display:flex;flex-wrap:wrap;gap:7px}
+.issue-action-btn{appearance:none;border:0;border-radius:10px;padding:10px 12px;font-size:13px;font-weight:800;cursor:pointer;color:#fff;min-height:42px;touch-action:manipulation}
+.issue-action-btn.income{background:#148a31;border:1px solid #39d353}
+.issue-action-btn.outgoing{background:#a56c00;border:1px solid #ffb020}
+.issue-action-btn:active{transform:scale(.98)}
+.issue-action-note{font-size:11px;opacity:.68;margin-top:5px}
+@media(max-width:520px){.issue-card{grid-template-columns:62px 1fr}.issue-thumb{width:62px;height:62px}}
+.footer-note{font-size:12px;opacity:.7;margin-top:12px}
+.result-box{display:none;background:var(--panel);border:2px solid var(--borde);border-radius:16px;padding:18px;margin-top:12px}
+.result-box.ok{border-color:var(--verde)}
+.result-box.err{border-color:var(--rojo)}
+.result-box h2{margin:0 0 10px}
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;text-align:left;max-width:480px;margin:0 auto}
+.busy::after{content:"";display:inline-block;width:13px;height:13px;margin-left:8px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:650px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  h1{font-size:19px}
+  .btn{flex:1}
+}
+
+.hidden{display:none!important}
+.mode-actions{margin-top:8px}
+.btn-small{min-height:34px;padding:6px 9px;font-size:12px;flex:0 0 auto}
+.issue-header-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.transfer-panel{text-align:left}
+.transfer-route{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin:10px 0;padding:12px;background:var(--panel);border:1px solid var(--borde);border-radius:14px;text-align:center}
+.transfer-route .place{min-width:0}
+.transfer-route .place span{display:block;font-size:11px;opacity:.72;text-transform:uppercase}
+.transfer-route .place b{display:block;color:var(--azul);font-size:17px;word-break:break-word;margin-top:3px}
+.transfer-route .arrow{font-size:24px;color:var(--verde)}
+.transfer-toolbar{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;margin:10px 0}
+.transfer-search{width:100%;min-height:46px;border-radius:11px;border:1px solid #555;background:rgba(0,0,0,.72);color:#fff;padding:10px 12px;outline:none}
+.transfer-search:focus{border-color:var(--azul);box-shadow:0 0 0 3px rgba(93,182,255,.16)}
+.transfer-list{display:grid;gap:9px;margin:10px 0 90px}
+.transfer-card{display:grid;grid-template-columns:72px 1fr auto;gap:11px;align-items:center;padding:10px;background:rgba(0,0,0,.76);border:2px solid var(--borde);border-radius:14px;cursor:pointer;touch-action:manipulation;user-select:none}
+.transfer-card.no-image{grid-template-columns:1fr auto}
+.transfer-card.selected{border-color:var(--verde);background:rgba(23,109,43,.28)}
+.transfer-card:active{transform:scale(.995)}
+.transfer-thumb{width:72px;height:72px;border-radius:10px;overflow:hidden;background:#151515;border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;color:#888;font-size:10px;text-align:center}
+.transfer-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.transfer-main{min-width:0}
+.transfer-code{font-weight:900;font-size:17px;word-break:break-word}
+.transfer-description{font-size:13px;opacity:.84;margin-top:3px}
+.transfer-quantity{font-size:13px;margin-top:6px}
+.transfer-qty-control{display:flex;align-items:center;gap:6px;margin-top:9px;flex-wrap:wrap}
+.transfer-qty-control button{width:42px;height:42px;padding:0;border-radius:10px;font-size:22px;font-weight:900}
+.transfer-qty-input{width:84px;height:42px;border-radius:10px;border:1px solid #666;background:#0e0e0e;color:#fff;text-align:center;font-size:18px;font-weight:800}
+.transfer-qty-max{font-size:11px;opacity:.72}
+.transfer-check{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #666;font-size:19px;font-weight:900}
+.transfer-card.selected .transfer-check{border-color:var(--verde);background:var(--verde);color:#071308}
+.transfer-empty{padding:24px;text-align:center;background:var(--panel);border:1px solid var(--borde);border-radius:14px;opacity:.8}
+.transfer-summary-bar{position:sticky;bottom:8px;z-index:12;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:10px 12px;background:rgba(0,0,0,.94);border:1px solid rgba(57,211,83,.55);border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.45)}
+.transfer-summary-bar b{display:block;color:var(--verde);font-size:17px}
+.transfer-summary-bar span{font-size:12px;opacity:.8}
+.transfer-review{background:var(--panel);border:1px solid var(--borde);border-radius:14px;padding:14px;margin:10px 0}
+.transfer-review h3{margin:0 0 10px;text-align:center}
+.transfer-review-list{display:grid;gap:7px;max-height:330px;overflow:auto}
+.transfer-review-row{display:grid;grid-template-columns:1fr auto;gap:10px;padding:8px 0;border-bottom:1px solid #292929}
+.transfer-review-row:last-child{border-bottom:0}
+.transfer-note{text-align:center;font-size:13px;opacity:.76;margin:9px 0}
+.transfer-countdown{font-size:14px;color:var(--amarillo);font-weight:800;text-align:center;margin:8px 0}
+.step-list{display:grid;gap:8px;text-align:left;background:var(--panel);border:1px solid var(--borde);border-radius:14px;padding:14px;margin:10px 0}
+.step-list div{display:flex;gap:10px;align-items:center}
+.step-number{width:28px;height:28px;border-radius:50%;background:#176d2b;display:flex;align-items:center;justify-content:center;font-weight:900;flex:0 0 auto}
+@media(max-width:650px){
+  .transfer-toolbar{grid-template-columns:1fr 1fr}.transfer-toolbar .transfer-search{grid-column:1/-1}
+  .transfer-card{grid-template-columns:62px 1fr auto}.transfer-thumb{width:62px;height:62px}
+  .transfer-summary-bar{grid-template-columns:1fr}.transfer-summary-bar .btn{width:100%}
+}
+.bulk-warning{background:rgba(122,31,31,.28);border:1px solid rgba(255,77,77,.72);border-radius:14px;padding:13px;margin:10px 0;text-align:left}
+.bulk-warning strong{display:block;color:var(--rojo);font-size:16px;margin-bottom:4px}
+.bulk-grid{display:grid;gap:9px;margin:10px 0 18px}
+.bulk-card{display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center;padding:9px;background:rgba(0,0,0,.74);border:1px solid var(--borde);border-radius:13px}
+.bulk-card.no-image{grid-template-columns:1fr auto}
+.bulk-thumb{width:64px;height:64px;border-radius:9px;overflow:hidden;background:#151515;border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;color:#888;font-size:10px;text-align:center}
+.bulk-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.bulk-total{font-size:18px;font-weight:900;color:var(--rojo)}
+@media(max-width:520px){.bulk-card{grid-template-columns:56px 1fr auto}.bulk-thumb{width:56px;height:56px}}
+
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo-box"><img src="https://revstudio.design/wp-content/uploads/2023/10/RevStudio-logo.png" alt="RevStudio"></div>
+  <button class="btn" onclick="volver()">⬅ Volver</button>
+</div>
+
+<main class="wrap">
+  <h1 id="pageTitle">Verificación de ubicación</h1>
+  <div class="sub" id="subtitle">Primero escanee el código de la ubicación</div>
+
+  <div class="location-banner" id="locationBanner">
+    Ubicación: <b id="locationText">—</b> · Bodega: <span id="warehouseText">—</span>
+  </div>
+
+  <section class="stats" id="verificationStats">
+    <div class="card"><span>Esperadas</span><b id="expectedUnits">0</b></div>
+    <div class="card"><span>Válidas</span><b id="validUnits">0</b></div>
+    <div class="card warning"><span>Faltantes</span><b id="missingUnits">0</b></div>
+    <div class="card error"><span>Errores</span><b id="errorUnits">0</b></div>
+  </section>
+
+  <input id="scanInput" type="text" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" inputmode="none" placeholder="Escanee ubicación…">
+  <div id="status" class="status info">LISTO PARA ESCANEAR UBICACIÓN</div>
+
+  <div class="actions mode-actions" id="modeBar">
+    <button id="transferModeBtn" class="btn" type="button" onclick="switchMode('transfer')">⇄ Hacer traslado masivo</button>
+    <button id="bulkExitModeBtn" class="btn btn-danger" type="button" onclick="switchMode('bulkExit')">⇥ Dar salida a toda la ubicación</button>
+    <button id="modeBackBtn" class="btn hidden" type="button" onclick="switchMode('verification')">← Volver a verificación</button>
+  </div>
+
+  <section id="verificationPanel">
+    <div class="actions" id="verificationActions">
+      <button id="undoBtn" class="btn btn-warning" onclick="undoLast()" disabled>↶ Deshacer último</button>
+      <button id="finishBtn" class="btn btn-primary" onclick="finishVerification()" disabled>✓ Finalizar</button>
+      <button id="resetBtn" class="btn btn-danger" onclick="resetVerification()">⟳ Nueva verificación</button>
+    </div>
+
+    <div id="filterBar" class="filter-bar">
+      <button id="issuesToggleBtn" class="btn btn-warning" onclick="toggleIssuesView()">⚠ Ver faltantes y diferencias</button>
+    </div>
+
+    <section id="issuePanel" class="issue-panel">
+      <div class="issue-header">
+        <strong id="issueTitle">PENDIENTES Y DIFERENCIAS</strong>
+        <div class="issue-header-meta">
+          <span id="issueCount">0 códigos</span>
+          <button id="refreshIssuesBtn" class="btn btn-small" type="button" onclick="refreshVerificationInventory(true)">↻ Actualizar</button>
+        </div>
+      </div>
+      <div id="issueList" class="issue-list"></div>
+    </section>
+
+    <div class="table-wrap" id="tableWrap">
+      <div class="empty" id="emptyMessage">La lista aparecerá después de escanear una ubicación.</div>
+      <table id="detailTable" hidden>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Descripción</th>
+            <th class="num">Esperado</th>
+            <th class="num">Escaneado</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="detailBody"></tbody>
+      </table>
+    </div>
+
+    <section id="resultBox" class="result-box">
+      <h2 id="resultTitle">Resultado</h2>
+      <div class="result-grid" id="resultGrid"></div>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="regresarAppSheetActualizar()">↩ Ver verificación guardada en AppSheet</button>
+        <button class="btn btn-danger" onclick="resetVerification()">Nueva verificación</button>
+      </div>
+    </section>
+
+    <div class="footer-note" id="verificationFooter">Los artículos correctos se cuentan temporalmente en la Zebra. AppSheet recibe únicamente el encabezado de la verificación y los códigos con diferencias.</div>
+  </section>
+
+  <section id="transferPanel" class="transfer-panel hidden">
+    <div id="transferContent"></div>
+  </section>
+</main>
+
+<script>
+"use strict";
+
+const DEFAULT_WORKER_URL = "https://revstudio-verificacion.bodegarevinterior.workers.dev";
+const APP_ID = "134208bd-92de-4550-b09a-657cb1cbdf2e";
+const STORAGE_KEY = "revstudio_verificacion_ubicacion_v1";
+const TRANSFER_STORAGE_KEY = "revstudio_traslado_masivo_v1";
+const BULK_EXIT_STORAGE_KEY = "revstudio_salida_masiva_v1";
+const params = new URLSearchParams(location.search);
+const WORKER_URL = (params.get("api") || DEFAULT_WORKER_URL).replace(/\/$/, "");
+const USER_EMAIL = params.get("usuario") || params.get("user") || "";
+const DEVICE = params.get("dispositivo") || navigator.userAgent;
+const BACK_VIEW = params.get("back_view") || "VERIFICACIONES";
+const BACK_DETAIL_VIEW = params.get("back_detail_view") || "VERIFICACIONES UBICACION_Detail";
+const MOVEMENT_FORM_VIEW = params.get("movement_form_view") || "MOVIMIENTOS BODEGA_Form";
+const WAREHOUSE_FORM_VIEW = params.get("warehouse_form_view") || "BODEGA_Form";
+const WAREHOUSE_CODE_COLUMN = params.get("warehouse_code_column") || "Código";
+const MOVEMENT_CODE_COLUMN = "Código";
+const MOVEMENT_LOCATION_COLUMN = "Ubicación Movimiento";
+const MOVEMENT_TYPE_COLUMN = "TIPO DE MOVIMIENTO";
+
+const input = document.getElementById("scanInput");
+const statusEl = document.getElementById("status");
+const finishBtn = document.getElementById("finishBtn");
+const undoBtn = document.getElementById("undoBtn");
+const detailTable = document.getElementById("detailTable");
+const detailBody = document.getElementById("detailBody");
+const emptyMessage = document.getElementById("emptyMessage");
+const verificationPanel = document.getElementById("verificationPanel");
+const transferPanel = document.getElementById("transferPanel");
+const transferContent = document.getElementById("transferContent");
+
+let mode = "verification";
+let state = createEmptyState();
+let transferState = createEmptyTransferState();
+let bulkExitState = createEmptyBulkExitState();
+let queue = [];
+let processingQueue = false;
+let submitting = false;
+let transferSubmitting = false;
+let bulkExitSubmitting = false;
+let onlyIssues = false;
+let loadingImages = false;
+let imageLookupDone = new Set();
+let transferSearchTerm = "";
+let undoTimer = null;
+let returningRefreshTimer = null;
+
+function cleanScan(value){
+  return String(value ?? "").trim();
+}
+
+function canonical(value){
+  return cleanScan(value).toLocaleUpperCase("es");
+}
+
+function escapeHtml(value){
+  return String(value ?? "")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+}
+
+function formatQuantity(value){
+  const number=Number(value)||0;
+  return Number.isInteger(number)?String(number):String(Number(number.toFixed(3)));
+}
+
+function createEmptyState(){
+  return {
+    version:2,
+    phase:"location",
+    verificationId:crypto.randomUUID(),
+    location:"",
+    warehouse:"",
+    startedAt:"",
+    initialHash:"",
+    expected:{},
+    unexpected:{},
+    totalReadings:0,
+    history:[],
+    savedVerificationId:"",
+    needsRefresh:false
+  };
+}
+
+function createEmptyTransferState(){
+  return {
+    version:2,
+    phase:"source",
+    transferId:`TRM-${crypto.randomUUID()}`,
+    sourceLocation:"",
+    destinationLocation:"",
+    warehouse:"",
+    startedAt:"",
+    initialHash:"",
+    items:{},
+    imagesEnabled:false,
+    savedTransferId:"",
+    movedCodes:0,
+    movedUnits:0,
+    movementRows:0,
+    undoUntil:"",
+    undone:false,
+    result:"",
+    warnings:[]
+  };
+}
+
+function createEmptyBulkExitState(){
+  return {
+    version:1,
+    phase:"source",
+    operationId:`SM-${crypto.randomUUID()}`,
+    sourceLocation:"",
+    warehouse:"",
+    startedAt:"",
+    initialHash:"",
+    items:{},
+    imagesEnabled:false,
+    savedOperationId:"",
+    movedCodes:0,
+    movedUnits:0,
+    movementRows:0,
+    undoUntil:"",
+    undone:false,
+    result:"",
+    warnings:[]
+  };
+}
+
+function persist(){
+  if(state.phase === "scanning") localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function persistTransfer(){
+  if(!["select","destination","review","finished"].includes(transferState.phase)) return;
+  const clone=JSON.parse(JSON.stringify(transferState));
+  for(const item of Object.values(clone.items||{})) item.imageUrl="";
+  localStorage.setItem(TRANSFER_STORAGE_KEY, JSON.stringify(clone));
+}
+
+function persistBulkExit(){
+  if(!["review","finished"].includes(bulkExitState.phase)) return;
+  const clone=JSON.parse(JSON.stringify(bulkExitState));
+  for(const item of Object.values(clone.items||{})) item.imageUrl="";
+  localStorage.setItem(BULK_EXIT_STORAGE_KEY,JSON.stringify(clone));
+}
+
+function restore(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(!raw) return false;
+  try{
+    const saved = JSON.parse(raw);
+    if([1,2].includes(saved?.version) && saved.phase === "scanning" && saved.location){
+      state = {...createEmptyState(),...saved,version:2,needsRefresh:Boolean(saved.needsRefresh)};
+      return true;
+    }
+  }catch(_){
+    localStorage.removeItem(STORAGE_KEY);
+  }
+  return false;
+}
+
+function restoreTransfer(){
+  const raw=localStorage.getItem(TRANSFER_STORAGE_KEY);
+  if(!raw) return false;
+  try{
+    const saved=JSON.parse(raw);
+    if([1,2].includes(saved?.version) && ["select","destination","review","finished"].includes(saved.phase) && saved.sourceLocation){
+      transferState={...createEmptyTransferState(),...saved,version:2};
+      for(const item of Object.values(transferState.items||{})){
+        item.available=Number(item.available)||0;
+        const savedQuantity=Number(item.quantity);
+        item.quantity=Math.min(item.available, savedQuantity>0?savedQuantity:item.available);
+      }
+      return true;
+    }
+  }catch(_){
+    localStorage.removeItem(TRANSFER_STORAGE_KEY);
+  }
+  return false;
+}
+
+function restoreBulkExit(){
+  const raw=localStorage.getItem(BULK_EXIT_STORAGE_KEY);
+  if(!raw) return false;
+  try{
+    const saved=JSON.parse(raw);
+    if(saved?.version===1 && ["review","finished"].includes(saved.phase) && saved.sourceLocation){
+      bulkExitState={...createEmptyBulkExitState(),...saved};
+      return true;
+    }
+  }catch(_){
+    localStorage.removeItem(BULK_EXIT_STORAGE_KEY);
+  }
+  return false;
+}
+
+function setStatus(message, type="info", busy=false){
+  statusEl.textContent = message;
+  statusEl.className = `status ${type}${busy ? " busy" : ""}`;
+}
+
+function setBusy(value){
+  input.disabled = value;
+  if(mode==="verification"){
+    finishBtn.disabled = value || state.phase !== "scanning";
+    undoBtn.disabled = value || state.phase !== "scanning" || !state.history.length;
+  }
+  if(!value) setTimeout(()=>input.focus(), 40);
+}
+
+async function post(path, payload){
+  const response = await fetch(`${WORKER_URL}${path}`, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(payload)
+  });
+  const text = await response.text();
+  let data;
+  try{data=JSON.parse(text)}catch{data={ok:false,error:text || `HTTP ${response.status}`}}
+  if(!response.ok || !data.ok) throw new Error(data.error || `HTTP ${response.status}`);
+  return data;
+}
+
+input.addEventListener("keydown", (event)=>{
+  if(event.key !== "Enter") return;
+  event.preventDefault();
+  const value = cleanScan(input.value);
+  input.value = "";
+  if(!value || submitting || transferSubmitting || bulkExitSubmitting) return;
+  queue.push(value);
+  drainQueue();
+});
+
+async function drainQueue(){
+  if(processingQueue) return;
+  processingQueue = true;
+  while(queue.length){
+    const value = queue.shift();
+    try{
+      if(mode==="transfer") await processTransferScan(value);
+      else if(mode==="bulkExit") await processBulkExitScan(value);
+      else if(state.phase === "location") await startVerification(value);
+      else if(state.phase === "scanning") await processItem(value);
+    }catch(error){
+      setBusy(false);
+      beepError(); vibrate([180]);
+      setStatus(`ERROR
+${error.message}`, "err");
+    }
+  }
+  processingQueue = false;
+  setTimeout(()=>input.focus(), 50);
+}
+
+async function startVerification(locationCode){
+  setBusy(true);
+  setStatus(`BUSCANDO ${locationCode}…`, "info", true);
+  try{
+    const data = await post("/start", {
+      verificationId:state.verificationId,
+      location:locationCode,
+      user:USER_EMAIL,
+      device:DEVICE
+    });
+
+    state = createEmptyState();
+    state.phase = "scanning";
+    state.verificationId = data.verificationId;
+    state.location = data.location;
+    state.warehouse = data.warehouse || "—";
+    state.startedAt = data.startedAt;
+    state.initialHash = data.initialHash;
+
+    for(const item of data.items){
+      const key = canonical(item.code);
+      state.expected[key] = {
+        code:cleanScan(item.code),
+        description:item.description || "",
+        expected:Number(item.expected) || 0,
+        scanned:0,
+        imageUrl:item.imageUrl || ""
+      };
+    }
+
+    input.placeholder = "Escanee artículos…";
+    document.getElementById("subtitle").textContent = "Escanee continuamente los artículos de esta ubicación";
+    beepOk(); vibrate([45]);
+    setStatus(`UBICACIÓN CARGADA
+${data.totalCodes} códigos · ${formatQuantity(data.totalUnits)} unidades`, "ok");
+    persist();
+    render();
+  }finally{
+    setBusy(false);
+  }
+}
+
+async function processItem(rawCode){
+  const key=canonical(rawCode);
+  if(state.expected[key]){
+    state.totalReadings++;
+    const item = state.expected[key];
+    item.scanned++;
+    state.history.push({kind:"expected",key,code:item.code});
+
+    if(item.scanned <= item.expected){
+      beepOk(); vibrate([35]);
+      setStatus(`✓ ${item.code}
+CORRECTO ${formatQuantity(item.scanned)} DE ${formatQuantity(item.expected)}`, "ok");
+    }else{
+      beepError(); vibrate([180,60,180]);
+      setStatus(`✕ ${item.code}
+EXCESO ${formatQuantity(item.scanned)} DE ${formatQuantity(item.expected)}`, "err");
+    }
+    persist(); render();
+    if(onlyIssues) loadIssueImages(getIssueItems().map(item=>item.code));
+    return;
+  }
+
+  let unexpected = state.unexpected[key];
+  if(!unexpected){
+    setBusy(true);
+    setStatus(`CONSULTANDO ${rawCode}…`, "info", true);
+    try{
+      const lookup = await post("/lookup", {code:rawCode, location:state.location});
+      const lookupCode=cleanScan(lookup.code || rawCode);
+      const lookupKey=canonical(lookupCode);
+      unexpected = state.unexpected[lookupKey] = {
+        code:lookupCode,
+        description:lookup.description || "",
+        type:lookup.type,
+        registeredLocations:lookup.locationsText || "",
+        existsInWarehouse:Boolean(lookup.existsInWarehouse),
+        canRegisterIncome:Boolean(lookup.canRegisterIncome),
+        canCreateWarehouse:Boolean(lookup.canCreateWarehouse),
+        scanned:0,
+        imageUrl:lookup.imageUrl || ""
+      };
+    }finally{
+      setBusy(false);
+    }
+  }
+
+  state.totalReadings++;
+  unexpected.scanned++;
+  state.history.push({kind:"unexpected",key:canonical(unexpected.code),code:unexpected.code});
+
+  if(unexpected.type === "NO PERTENECE"){
+    beepNotBelonging(); vibrate([120,55,120]);
+    setStatus(`✕ ${unexpected.code}
+NO PERTENECE
+${unexpected.registeredLocations || "Otra ubicación"}`, "err");
+  }else{
+    beepUnregistered(); vibrate([70,45,70,45,70]);
+    setStatus(`✕ ${unexpected.code}
+CÓDIGO NO REGISTRADO`, "warn");
+  }
+  persist(); render();
+  if(onlyIssues) loadIssueImages(getIssueItems().map(item=>item.code));
+}
+
+function calculate(){
+  let totalExpectedCodes=0,totalExpectedUnits=0,totalValidUnits=0,totalMissing=0,totalExcess=0;
+  let totalNotBelonging=0,totalUnregistered=0,totalScannedCodes=0;
+  const errors=[];
+
+  for(const item of Object.values(state.expected)){
+    totalExpectedCodes++;
+    totalExpectedUnits += item.expected;
+    totalValidUnits += Math.min(item.scanned,item.expected);
+    if(item.scanned>0) totalScannedCodes++;
+
+    if(item.scanned < item.expected){
+      const difference=item.scanned-item.expected;
+      totalMissing += Math.abs(difference);
+      errors.push({
+        type:"FALTANTE",code:item.code,description:item.description,
+        expected:item.expected,scanned:item.scanned,difference,
+        registeredLocations:state.location,observation:""
+      });
+    }else if(item.scanned > item.expected){
+      const difference=item.scanned-item.expected;
+      totalExcess += difference;
+      errors.push({
+        type:"EXCESO",code:item.code,description:item.description,
+        expected:item.expected,scanned:item.scanned,difference,
+        registeredLocations:state.location,observation:""
+      });
+    }
+  }
+
+  for(const item of Object.values(state.unexpected)){
+    if(item.scanned<=0) continue;
+    totalScannedCodes++;
+    if(item.type === "NO PERTENECE") totalNotBelonging += item.scanned;
+    else totalUnregistered += item.scanned;
+    errors.push({
+      type:item.type,code:item.code,description:item.description,
+      expected:0,scanned:item.scanned,difference:item.scanned,
+      registeredLocations:item.registeredLocations,observation:""
+    });
+  }
+
+  return {
+    summary:{
+      totalExpectedCodes,totalExpectedUnits,totalReadings:state.totalReadings,
+      totalScannedCodes,totalValidUnits,totalMissing,totalExcess,
+      totalNotBelonging,totalUnregistered
+    },
+    errors
+  };
+}
+
+async function finishVerification(){
+  if(state.phase !== "scanning" || submitting) return;
+  const calc=calculate();
+  const message=`¿Finalizar ${state.location}?
+
+Esperadas: ${formatQuantity(calc.summary.totalExpectedUnits)}
+Válidas: ${formatQuantity(calc.summary.totalValidUnits)}
+Faltantes: ${formatQuantity(calc.summary.totalMissing)}
+Excesos: ${formatQuantity(calc.summary.totalExcess)}
+No pertenecen: ${formatQuantity(calc.summary.totalNotBelonging)}
+No registrados: ${formatQuantity(calc.summary.totalUnregistered)}`;
+  if(!window.confirm(message)) return;
+
+  submitting=true;
+  setBusy(true);
+  setStatus("GUARDANDO VERIFICACIÓN…", "info", true);
+  try{
+    const result=await post("/finish", {
+      verificationId:state.verificationId,
+      location:state.location,
+      warehouse:state.warehouse,
+      user:USER_EMAIL,
+      device:DEVICE,
+      startedAt:state.startedAt,
+      initialHash:state.initialHash,
+      summary:calc.summary,
+      errors:calc.errors,
+      observation:""
+    });
+
+    localStorage.removeItem(STORAGE_KEY);
+    state.savedVerificationId=result.verificationId || state.verificationId;
+    state.phase="finished";
+    queue=[];
+    onlyIssues = false;
+    showFinalResult(result,calc);
+    if(result.result === "OK"){
+      beepSuccess(); vibrate([60,45,60]);
+      setStatus("✓ VERIFICACIÓN CORRECTA", "ok");
+    }else if(result.result === "INVENTARIO MODIFICADO"){
+      beepError(); vibrate([200,80,200]);
+      setStatus("INVENTARIO MODIFICADO DURANTE EL CONTEO", "warn");
+    }else{
+      beepError(); vibrate([200]);
+      setStatus("VERIFICACIÓN GUARDADA CON DIFERENCIAS", "err");
+    }
+  }catch(error){
+    setStatus(`NO SE PUDO GUARDAR
+${error.message}
+Puede presionar Finalizar para reintentar.`, "err");
+    submitting=false;
+    setBusy(false);
+    return;
+  }
+  submitting=false;
+  render();
+}
+
+function undoLast(){
+  if(state.phase!=="scanning" || !state.history.length || submitting) return;
+  const last=state.history.pop();
+  state.totalReadings=Math.max(0,state.totalReadings-1);
+  if(last.kind==="expected" && state.expected[last.key]){
+    state.expected[last.key].scanned=Math.max(0,state.expected[last.key].scanned-1);
+  }
+  if(last.kind==="unexpected" && state.unexpected[last.key]){
+    state.unexpected[last.key].scanned=Math.max(0,state.unexpected[last.key].scanned-1);
+  }
+  beepUndo(); vibrate([30]);
+  setStatus(`↶ ÚLTIMO ESCANEO ELIMINADO
+${last.code}`, "info");
+  persist(); render();
+  if(onlyIssues) loadIssueImages(getIssueItems().map(item=>item.code));
+}
+
+function resetVerification(){
+  if(state.phase==="scanning" && state.totalReadings>0){
+    if(!window.confirm("¿Cancelar esta verificación y borrar el conteo temporal?")) return;
+  }
+  localStorage.removeItem(STORAGE_KEY);
+  state=createEmptyState();
+  queue=[];
+  submitting=false;
+  onlyIssues=false;
+  imageLookupDone = new Set();
+  input.disabled=false;
+  input.placeholder="Escanee ubicación…";
+  document.getElementById("resultBox").style.display="none";
+  setStatus("LISTO PARA ESCANEAR UBICACIÓN","info");
+  render();
+  setTimeout(()=>input.focus(),50);
+}
+
+async function refreshVerificationInventory(showMessage=false){
+  if(mode!=="verification" || state.phase!=="scanning" || submitting) return;
+  const previousStatus=statusEl.textContent;
+  setBusy(true);
+  setStatus(`ACTUALIZANDO ${state.location}…`,"info",true);
+  try{
+    const data=await post("/refresh",{location:state.location});
+    const previousExpected=state.expected;
+    const remainingUnexpected={...state.unexpected};
+    const nextExpected={};
+
+    for(const item of data.items||[]){
+      const key=canonical(item.code);
+      const oldExpected=previousExpected[key];
+      const oldUnexpected=remainingUnexpected[key];
+      nextExpected[key]={
+        code:cleanScan(item.code),
+        description:item.description || oldExpected?.description || oldUnexpected?.description || "",
+        expected:Number(item.expected)||0,
+        scanned:Number(oldExpected?.scanned ?? oldUnexpected?.scanned ?? 0),
+        imageUrl:oldExpected?.imageUrl || oldUnexpected?.imageUrl || item.imageUrl || ""
+      };
+      delete remainingUnexpected[key];
+    }
+
+    for(const [key,item] of Object.entries(previousExpected)){
+      if(nextExpected[key]) continue;
+      if(Number(item.scanned)>0){
+        nextExpected[key]={...item,expected:0};
+      }
+    }
+
+    for(const [key,item] of Object.entries(remainingUnexpected)){
+      try{
+        const lookup=await post("/lookup",{code:item.code,location:state.location});
+        remainingUnexpected[key]={
+          ...item,
+          code:cleanScan(lookup.code||item.code),
+          description:lookup.description||item.description||"",
+          type:lookup.type||item.type,
+          registeredLocations:lookup.locationsText||"",
+          existsInWarehouse:Boolean(lookup.existsInWarehouse),
+          canRegisterIncome:Boolean(lookup.canRegisterIncome),
+          canCreateWarehouse:Boolean(lookup.canCreateWarehouse)
+        };
+      }catch(_){ }
+    }
+
+    state.expected=nextExpected;
+    state.unexpected=remainingUnexpected;
+    state.warehouse=data.warehouse || state.warehouse;
+    state.initialHash=data.initialHash;
+    state.needsRefresh=false;
+    persist();
+    render();
+    if(onlyIssues) loadIssueImages(getIssueItems().map(item=>item.code));
+    beepOk(); vibrate([35]);
+    if(showMessage){
+      const issues=getIssueItems();
+      setStatus(`✓ PENDIENTES ACTUALIZADOS
+${issues.length} código${issues.length===1?"":"s"} con diferencia`,issues.length?"warn":"ok");
+    }else{
+      setStatus(previousStatus || "INVENTARIO ACTUALIZADO","info");
+    }
+  }catch(error){
+    state.needsRefresh=true;
+    persist();
+    setStatus(`NO SE PUDO ACTUALIZAR
+${error.message}`,"err");
+  }finally{
+    setBusy(false);
+  }
+}
+
+function getIssueItems(){
+  const items=[];
+  for(const item of Object.values(state.expected)){
+    if(item.scanned===item.expected) continue;
+    const missing=item.scanned<item.expected;
+    items.push({
+      kind:missing?"missing":"excess",
+      code:item.code,
+      description:item.description,
+      expected:item.expected,
+      scanned:item.scanned,
+      imageUrl:item.imageUrl||"",
+      label:missing?`FALTAN ${formatQuantity(item.expected-item.scanned)}`:`EXCESO +${formatQuantity(item.scanned-item.expected)}`,
+      priority:missing?2:1
+    });
+  }
+  for(const item of Object.values(state.unexpected)){
+    if(item.scanned<=0) continue;
+    items.push({
+      kind:"unexpected",code:item.code,description:item.description||item.registeredLocations,
+      expected:0,scanned:item.scanned,imageUrl:item.imageUrl||"",label:item.type,priority:0,
+      existsInWarehouse:Boolean(item.existsInWarehouse),
+      canRegisterIncome:Boolean(item.canRegisterIncome),
+      canCreateWarehouse:Boolean(item.canCreateWarehouse),
+      registeredLocations:item.registeredLocations||""
+    });
+  }
+  return items.sort((a,b)=>a.priority-b.priority||a.code.localeCompare(b.code));
+}
+
+function renderIssueCards(issues){
+  const panel=document.getElementById("issuePanel");
+  const list=document.getElementById("issueList");
+  const issueUnits=issues.reduce((total,item)=>{
+    if(item.kind==="missing") return total+Math.max(0,item.expected-item.scanned);
+    if(item.kind==="excess") return total+Math.max(0,item.scanned-item.expected);
+    return total+Math.max(0,item.scanned);
+  },0);
+  document.getElementById("issueCount").textContent=`${issues.length} código${issues.length===1?"":"s"} · ${formatQuantity(issueUnits)} unidad${issueUnits===1?"":"es"}`;
+  document.getElementById("refreshIssuesBtn").style.display=state.phase==="scanning"?"inline-flex":"none";
+  if(!onlyIssues){panel.style.display="none";list.innerHTML="";return}
+  panel.style.display="block";
+  if(!issues.length){
+    list.innerHTML='<div class="status ok">✓ NO HAY PENDIENTES NI DIFERENCIAS</div>';
+    return;
+  }
+  list.innerHTML=issues.map(item=>{
+    const thumb=item.imageUrl
+      ? `<div class="issue-thumb"><img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.code)}" loading="lazy" onerror="this.style.display='none';this.parentElement.textContent='SIN FOTO'"></div>`
+      : '<div class="issue-thumb">SIN FOTO</div>';
+
+    let movementAction="";
+    if(item.kind==="missing"){
+      movementAction=`<div class="issue-action"><button type="button" class="issue-action-btn outgoing" data-movement-kind="missing" data-movement-code="${escapeHtml(item.code)}">↗ Registrar SALIDA en AppSheet</button></div><div class="issue-action-note">Al regresar, pulse Actualizar o vuelva a abrir Pendientes.</div>`;
+    }else if(item.kind==="excess"){
+      movementAction=`<div class="issue-action"><button type="button" class="issue-action-btn income" data-movement-kind="excess" data-movement-code="${escapeHtml(item.code)}">↗ Registrar INGRESO en AppSheet</button></div><div class="issue-action-note">Al regresar, pulse Actualizar o vuelva a abrir Pendientes.</div>`;
+    }else if(item.kind==="unexpected" && item.canRegisterIncome){
+      movementAction=`<div class="issue-action"><button type="button" class="issue-action-btn income" data-movement-kind="unexpected-income" data-movement-code="${escapeHtml(item.code)}">↗ Registrar INGRESO en esta ubicación</button></div><div class="issue-action-note">Disponible porque el código existe en BODEGA y no tiene existencia positiva en otra ubicación.</div>`;
+    }else if(item.kind==="unexpected" && item.canCreateWarehouse){
+      movementAction=`<div class="issue-action"><button type="button" class="issue-action-btn income" data-create-warehouse-code="${escapeHtml(item.code)}">＋ Crear código en BODEGA</button></div><div class="issue-action-note">Primero cree el código. Al regresar pulse Actualizar; después aparecerá el botón de INGRESO.</div>`;
+    }
+
+    return `<article class="issue-card ${item.kind}">${thumb}<div><div class="issue-code">${escapeHtml(item.code)}</div><div class="issue-description">${escapeHtml(item.description||item.registeredLocations||"Sin descripción")}</div><div class="issue-counts"><span>Esperado: <b>${formatQuantity(item.expected)}</b></span><span>Escaneado: <b>${formatQuantity(item.scanned)}</b></span></div><div class="issue-state">${escapeHtml(item.label)}${item.registeredLocations?` · ${escapeHtml(item.registeredLocations)}`:""}</div>${movementAction}</div></article>`;
+  }).join("");
+
+  list.querySelectorAll("[data-movement-kind]").forEach(button=>{
+    button.addEventListener("click",()=>openMovementForm(
+      button.getAttribute("data-movement-kind"),
+      button.getAttribute("data-movement-code")
+    ));
+  });
+  list.querySelectorAll("[data-create-warehouse-code]").forEach(button=>{
+    button.addEventListener("click",()=>openWarehouseForm(
+      button.getAttribute("data-create-warehouse-code")
+    ));
+  });
+}
+
+function buildMovementFormUrls(kind,code){
+  const movementType=(kind==="excess"||kind==="unexpected-income")?"INGRESO":"SALIDA";
+  const defaults={
+    [MOVEMENT_CODE_COLUMN]:cleanScan(code),
+    [MOVEMENT_LOCATION_COLUMN]:state.location,
+    [MOVEMENT_TYPE_COLUMN]:movementType
+  };
+  const fragment=`#view=${encodeURIComponent(MOVEMENT_FORM_VIEW)}&defaults=${encodeURIComponent(JSON.stringify(defaults))}`;
+  return {
+    movementType,
+    appUrl:`appsheet://www.appsheet.com/start/${APP_ID}${fragment}`,
+    webUrl:`https://www.appsheet.com/start/${APP_ID}${fragment}`
+  };
+}
+
+function openMovementForm(kind,code){
+  if(state.phase!=="scanning" && state.phase!=="finished") return;
+  if(!["missing","excess","unexpected-income"].includes(kind)) return;
+  const {movementType,appUrl,webUrl}=buildMovementFormUrls(kind,code);
+  state.needsRefresh=true;
+  persist();
+  setStatus(`ABRIENDO ${movementType} EN APPSHEET
+${cleanScan(code)} · ${state.location}`,"info",true);
+  location.href=appUrl;
+  setTimeout(()=>{location.href=webUrl},1100);
+}
+
+function buildWarehouseFormUrls(code){
+  const defaults={
+    [WAREHOUSE_CODE_COLUMN]:cleanScan(code)
+  };
+  const fragment=`#view=${encodeURIComponent(WAREHOUSE_FORM_VIEW)}&defaults=${encodeURIComponent(JSON.stringify(defaults))}`;
+  return {
+    appUrl:`appsheet://www.appsheet.com/start/${APP_ID}${fragment}`,
+    webUrl:`https://www.appsheet.com/start/${APP_ID}${fragment}`
+  };
+}
+
+function openWarehouseForm(code){
+  if(state.phase!=="scanning") return;
+  const {appUrl,webUrl}=buildWarehouseFormUrls(code);
+  state.needsRefresh=true;
+  persist();
+  setStatus(`CREANDO CÓDIGO EN BODEGA\n${cleanScan(code)}`,"info",true);
+  location.href=appUrl;
+  setTimeout(()=>{location.href=webUrl},1100);
+}
+
+function renderVerification(){
+  document.getElementById("pageTitle").textContent="Verificación de ubicación";
+  const calc=calculate();
+  document.getElementById("expectedUnits").textContent=formatQuantity(calc.summary.totalExpectedUnits);
+  document.getElementById("validUnits").textContent=formatQuantity(calc.summary.totalValidUnits);
+  document.getElementById("missingUnits").textContent=formatQuantity(calc.summary.totalMissing);
+  document.getElementById("errorUnits").textContent=formatQuantity(calc.summary.totalExcess+calc.summary.totalNotBelonging+calc.summary.totalUnregistered);
+
+  const scanning=state.phase==="scanning";
+  const finished=state.phase==="finished";
+  input.disabled=finished||submitting;
+  input.style.display=finished?"none":"block";
+  document.getElementById("verificationStats").style.display="grid";
+  document.getElementById("locationBanner").style.display=scanning||finished?"block":"none";
+  document.getElementById("locationText").textContent=state.location||"—";
+  document.getElementById("warehouseText").textContent=state.warehouse||"—";
+  finishBtn.disabled=!scanning||submitting;
+  undoBtn.disabled=!scanning||submitting||!state.history.length;
+  document.getElementById("modeBar").style.display=state.phase==="location"?"flex":"none";
+  document.getElementById("transferModeBtn").classList.remove("hidden");
+  document.getElementById("bulkExitModeBtn").classList.remove("hidden");
+  document.getElementById("modeBackBtn").classList.add("hidden");
+
+  if(state.phase==="location"){
+    input.placeholder="Escanee ubicación…";
+    document.getElementById("subtitle").textContent="Primero escanee el código de la ubicación";
+  }else if(scanning){
+    input.placeholder="Escanee artículos…";
+  }
+
+  const issues=getIssueItems();
+  const filterBar=document.getElementById("filterBar");
+  filterBar.style.display=(scanning||finished)?"flex":"none";
+  const toggle=document.getElementById("issuesToggleBtn");
+  toggle.textContent=onlyIssues?"☰ Ver todos":"⚠ Ver faltantes y diferencias";
+  toggle.className=`btn ${onlyIssues?"btn-primary":"btn-warning"}`;
+  renderIssueCards(issues);
+
+  const rows=[];
+  const expectedSorted=Object.values(state.expected).sort((a,b)=>{
+    const pa=a.scanned>a.expected?1:(a.scanned<a.expected?2:4);
+    const pb=b.scanned>b.expected?1:(b.scanned<b.expected?2:4);
+    return pa-pb||a.code.localeCompare(b.code);
+  });
+  for(const item of expectedSorted){
+    const isIssue=item.scanned!==item.expected;
+    if(onlyIssues&&!isIssue) continue;
+    let label="OK",cls="row-ok";
+    if(item.scanned>item.expected){label=`EXCESO +${formatQuantity(item.scanned-item.expected)}`;cls="row-excess"}
+    else if(item.scanned<item.expected){label=`FALTAN ${formatQuantity(item.expected-item.scanned)}`;cls="row-missing"}
+    rows.push(`<tr class="${cls}"><td>${escapeHtml(item.code)}</td><td>${escapeHtml(item.description)}</td><td class="num">${formatQuantity(item.expected)}</td><td class="num">${formatQuantity(item.scanned)}</td><td>${label}</td></tr>`);
+  }
+  const unexpectedSorted=Object.values(state.unexpected).filter(x=>x.scanned>0).sort((a,b)=>a.code.localeCompare(b.code));
+  for(const item of unexpectedSorted){
+    rows.unshift(`<tr class="row-unexpected"><td>${escapeHtml(item.code)}</td><td>${escapeHtml(item.description||item.registeredLocations)}</td><td class="num">0</td><td class="num">${formatQuantity(item.scanned)}</td><td>${escapeHtml(item.type)}</td></tr>`);
+  }
+
+  detailBody.innerHTML=rows.join("");
+  detailTable.hidden=!rows.length;
+  emptyMessage.style.display=rows.length?"none":"block";
+  if(!rows.length&&onlyIssues) emptyMessage.textContent="No hay pendientes ni diferencias.";
+  else if(!rows.length) emptyMessage.textContent="La lista aparecerá después de escanear una ubicación.";
+}
+
+async function toggleIssuesView(){
+  if(state.phase!=="scanning" && state.phase!=="finished") return;
+  const opening=!onlyIssues;
+  if(opening && state.phase==="scanning") await refreshVerificationInventory(false);
+  onlyIssues=opening;
+  render();
+  if(onlyIssues){
+    const codes=getIssueItems().map(item=>item.code);
+    loadIssueImages(codes);
+    document.getElementById("issuePanel").scrollIntoView({behavior:"smooth",block:"start"});
+    setStatus(
+      state.phase==="scanning"
+        ? `PENDIENTES ACTUALIZADOS\nPuede corregirlos y volver a actualizar.`
+        : "MOSTRANDO SOLO PENDIENTES Y DIFERENCIAS",
+      getIssueItems().length?"warn":"ok"
+    );
+  }else{
+    document.getElementById("tableWrap").scrollIntoView({behavior:"smooth",block:"start"});
+    if(state.phase==="scanning") setStatus("VISTA COMPLETA\nContinúe escaneando o finalice la verificación.", "info");
+  }
+}
+
+async function loadIssueImages(codes){
+  const unique=[...new Set((codes||[]).map(cleanScan).filter(Boolean))]
+    .filter(code=>!imageLookupDone.has(canonical(code)));
+  if(!unique.length||loadingImages) return;
+  loadingImages=true;
+  unique.forEach(code=>imageLookupDone.add(canonical(code)));
+  const title=document.getElementById("issueTitle");
+  const previousTitle=title.textContent;
+  title.textContent="BUSCANDO FOTOS…";
+  try{
+    const data=await post("/images",{codes:unique});
+    for(const [rawCode,url] of Object.entries(data.images||{})){
+      const key=canonical(rawCode);
+      if(state.expected[key]) state.expected[key].imageUrl=url;
+      if(state.unexpected[key]) state.unexpected[key].imageUrl=url;
+    }
+    render();
+  }catch(error){
+    console.warn("Imágenes no disponibles",error);
+  }finally{
+    loadingImages=false;
+    title.textContent=previousTitle;
+  }
+}
+
+function showFinalResult(result,calc){
+  const box=document.getElementById("resultBox");
+  box.style.display="block";
+  box.className=`result-box ${result.result==="OK"?"ok":"err"}`;
+  document.getElementById("resultTitle").textContent=result.result;
+  const values=[
+    ["Ubicación",state.location],
+    ["Esperadas",formatQuantity(calc.summary.totalExpectedUnits)],
+    ["Válidas",formatQuantity(calc.summary.totalValidUnits)],
+    ["Faltantes",formatQuantity(calc.summary.totalMissing)],
+    ["Excesos",formatQuantity(calc.summary.totalExcess)],
+    ["No pertenecen",formatQuantity(calc.summary.totalNotBelonging)],
+    ["No registrados",formatQuantity(calc.summary.totalUnregistered)],
+    ["Errores guardados",result.errorsSaved]
+  ];
+  document.getElementById("resultGrid").innerHTML=values.map(([k,v])=>`<b>${escapeHtml(k)}</b><span>${escapeHtml(v)}</span>`).join("");
+  box.scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+function switchMode(target="verification"){
+  if(target==="verification"){
+    if(mode==="transfer" && ["select","destination","review"].includes(transferState.phase)){
+      if(!window.confirm("¿Cancelar el traslado masivo en curso?")) return;
+    }
+    if(mode==="bulkExit" && bulkExitState.phase==="review"){
+      if(!window.confirm("¿Cancelar la salida masiva en curso?")) return;
+    }
+    if(mode==="transfer") localStorage.removeItem(TRANSFER_STORAGE_KEY);
+    if(mode==="bulkExit") localStorage.removeItem(BULK_EXIT_STORAGE_KEY);
+    transferState=createEmptyTransferState();
+    bulkExitState=createEmptyBulkExitState();
+    transferSearchTerm="";
+    mode="verification";
+    setStatus("LISTO PARA ESCANEAR UBICACIÓN","info");
+  }else if(target==="transfer"){
+    if(state.phase!=="location") return;
+    mode="transfer";
+    transferState=createEmptyTransferState();
+    transferSearchTerm="";
+    setStatus("LISTO PARA ESCANEAR UBICACIÓN ORIGEN","info");
+  }else if(target==="bulkExit"){
+    if(state.phase!=="location") return;
+    mode="bulkExit";
+    bulkExitState=createEmptyBulkExitState();
+    setStatus("LISTO PARA ESCANEAR LA UBICACIÓN QUE SE VACIARÁ","warn");
+  }
+  queue=[];
+  render();
+  setTimeout(()=>input.focus(),60);
+}
+
+async function processTransferScan(value){
+  if(transferState.phase==="source") return startTransfer(value);
+  if(transferState.phase==="select") return selectTransferByScan(value);
+  if(transferState.phase==="destination") return setTransferDestination(value);
+  beepError(); vibrate([120]);
+  setStatus("USE LOS BOTONES DE LA PANTALLA PARA CONTINUAR","warn");
+}
+
+async function startTransfer(sourceLocation){
+  transferSubmitting=true;
+  setBusy(true);
+  setStatus(`BUSCANDO ${sourceLocation}…`,"info",true);
+  try{
+    const data=await post("/transfers/start",{
+      transferId:transferState.transferId,
+      sourceLocation,
+      user:USER_EMAIL,
+      device:DEVICE
+    });
+    transferState=createEmptyTransferState();
+    transferState.phase="select";
+    transferState.transferId=data.transferId;
+    transferState.sourceLocation=data.sourceLocation;
+    transferState.warehouse=data.warehouse||"BODEGA";
+    transferState.startedAt=data.startedAt;
+    transferState.initialHash=data.initialHash;
+    transferState.imagesEnabled=(data.items||[]).length<=30;
+    for(const row of data.items||[]){
+      const key=canonical(row.code);
+      transferState.items[key]={
+        code:cleanScan(row.code),
+        description:row.description||"",
+        available:Number(row.available)||0,
+        quantity:Number(row.available)||0,
+        selected:false,
+        imageUrl:""
+      };
+    }
+    persistTransfer();
+    beepOk();vibrate([45]);
+    setStatus(`ORIGEN CARGADO
+${data.totalCodes} códigos · ${formatQuantity(data.totalUnits)} unidades`,"ok");
+    render();
+    if(transferState.imagesEnabled) loadTransferImages();
+  }finally{
+    transferSubmitting=false;
+    setBusy(false);
+  }
+}
+
+function selectedTransferItems(){
+  return Object.values(transferState.items).filter(item=>item.selected && item.available>0 && Number(item.quantity)>0);
+}
+
+function transferTotals(){
+  const selected=selectedTransferItems();
+  return {
+    codes:selected.length,
+    units:selected.reduce((sum,item)=>sum+Number(item.quantity||0),0)
+  };
+}
+
+function normalizeTransferQuantity(item,value){
+  const number=Number(String(value??"").replace(",","."));
+  if(!Number.isFinite(number)||number<=0) return 0;
+  return Math.min(item.available,Math.round((number+Number.EPSILON)*1_000_000)/1_000_000);
+}
+
+function setTransferQuantity(key,value){
+  const item=transferState.items[key];
+  if(!item||transferSubmitting) return;
+  const quantity=normalizeTransferQuantity(item,value);
+  item.quantity=quantity;
+  item.selected=quantity>0;
+  persistTransfer();
+  renderTransfer();
+}
+
+function adjustTransferQuantity(key,delta){
+  const item=transferState.items[key];
+  if(!item||transferSubmitting) return;
+  const current=Number(item.quantity)||0;
+  const next=normalizeTransferQuantity(item,current+Number(delta||0));
+  item.quantity=next;
+  item.selected=next>0;
+  persistTransfer();
+  renderTransfer();
+}
+
+function setTransferMaximum(key){
+  const item=transferState.items[key];
+  if(!item||transferSubmitting) return;
+  item.quantity=item.available;
+  item.selected=item.available>0;
+  persistTransfer();
+  renderTransfer();
+}
+
+function selectTransferByScan(rawCode){
+  const key=canonical(rawCode);
+  const item=transferState.items[key];
+  if(!item){
+    beepError();vibrate([160]);
+    setStatus(`✕ ${rawCode}
+NO EXISTE EN LA UBICACIÓN ORIGEN`,"err");
+    return;
+  }
+  if(item.selected){
+    beepUndo();vibrate([30]);
+    setStatus(`YA ESTABA SELECCIONADO
+${item.code} · ${formatQuantity(item.quantity)} unidades`,"info");
+  }else{
+    item.selected=true;
+    item.quantity=item.available;
+    beepOk();vibrate([35]);
+    setStatus(`✓ SELECCIONADO
+${item.code} · ${formatQuantity(item.quantity)} unidades`,"ok");
+    persistTransfer();
+    render();
+  }
+}
+
+function toggleTransferItem(key){
+  const item=transferState.items[key];
+  if(!item||transferSubmitting) return;
+  item.selected=!item.selected;
+  if(item.selected && !(Number(item.quantity)>0)) item.quantity=item.available;
+  persistTransfer();
+  renderTransfer();
+  setTimeout(()=>input.focus(),30);
+}
+
+function selectAllTransfer(){
+  Object.values(transferState.items).forEach(item=>{item.selected=item.available>0;item.quantity=item.available;});
+  persistTransfer();renderTransfer();setTimeout(()=>input.focus(),30);
+}
+
+function deselectAllTransfer(){
+  Object.values(transferState.items).forEach(item=>item.selected=false);
+  persistTransfer();renderTransfer();setTimeout(()=>input.focus(),30);
+}
+
+function updateTransferSearch(value){
+  transferSearchTerm=String(value||"");
+  const active=document.activeElement?.id==="transferSearch";
+  const position=document.getElementById("transferSearch")?.selectionStart||transferSearchTerm.length;
+  renderTransfer();
+  if(active){
+    const search=document.getElementById("transferSearch");
+    search?.focus();
+    try{search?.setSelectionRange(position,position)}catch(_){ }
+  }
+}
+
+function continueToDestination(){
+  const totals=transferTotals();
+  if(!totals.codes){
+    beepError();vibrate([150]);
+    setStatus("SELECCIONE AL MENOS UN ARTÍCULO","warn");
+    return;
+  }
+  transferState.phase="destination";
+  persistTransfer();
+  setStatus("ESCANEE LA UBICACIÓN DESTINO","info");
+  render();
+  setTimeout(()=>input.focus(),50);
+}
+
+function setTransferDestination(value){
+  if(canonical(value)===canonical(transferState.sourceLocation)){
+    beepError();vibrate([180]);
+    setStatus("LA UBICACIÓN DESTINO NO PUEDE SER IGUAL AL ORIGEN","err");
+    return;
+  }
+  transferState.destinationLocation=cleanScan(value);
+  transferState.phase="review";
+  persistTransfer();
+  beepOk();vibrate([45]);
+  setStatus("DESTINO CAPTURADO\nREVISE Y CONFIRME EL TRASLADO","ok");
+  render();
+}
+
+function editTransferSelection(){
+  transferState.phase="select";
+  transferState.destinationLocation="";
+  persistTransfer();
+  setStatus("AJUSTE LA SELECCIÓN Y CONTINÚE","info");
+  render();
+}
+
+function rescanDestination(){
+  transferState.phase="destination";
+  transferState.destinationLocation="";
+  persistTransfer();
+  setStatus("ESCANEE LA UBICACIÓN DESTINO","info");
+  render();
+  setTimeout(()=>input.focus(),40);
+}
+
+async function confirmTransfer(){
+  if(transferState.phase!=="review"||transferSubmitting) return;
+  const selected=selectedTransferItems();
+  const totals=transferTotals();
+  if(!window.confirm(`¿Confirmar traslado?
+
+Origen: ${transferState.sourceLocation}
+Destino: ${transferState.destinationLocation}
+Códigos: ${totals.codes}
+Unidades: ${formatQuantity(totals.units)}`)) return;
+  transferSubmitting=true;
+  setBusy(true);
+  setStatus("REGISTRANDO MOVIMIENTOS EN APPSHEET…","info",true);
+  try{
+    const result=await post("/transfers/confirm",{
+      transferId:transferState.transferId,
+      sourceLocation:transferState.sourceLocation,
+      destinationLocation:transferState.destinationLocation,
+      warehouse:transferState.warehouse,
+      startedAt:transferState.startedAt,
+      initialHash:transferState.initialHash,
+      user:USER_EMAIL,
+      device:DEVICE,
+      items:selected.map(item=>({code:item.code,quantity:item.quantity}))
+    });
+
+    if(!result.completed){
+      reconcileTransferInventory(result.currentItems||[]);
+      transferState.initialHash=result.currentHash||transferState.initialHash;
+      transferState.phase="select";
+      persistTransfer();
+      beepError();vibrate([200,80,200]);
+      const first=result.conflicts?.[0];
+      setStatus(first?`INVENTARIO MODIFICADO
+${first.code}: disponible ${formatQuantity(first.available)}`:"INVENTARIO MODIFICADO\nREVISE LA SELECCIÓN","warn");
+      render();
+      return;
+    }
+
+    applyTransferSuccess(result);
+  }catch(error){
+    try{
+      const status=await post("/transfers/status",{transferId:transferState.transferId});
+      if(status.found && status.complete){
+        applyTransferSuccess(status);
+        return;
+      }
+    }catch(_){ }
+    setStatus(`NO SE PUDO CONFIRMAR
+${error.message}
+Puede volver a intentarlo sin duplicar movimientos.`,"err");
+  }finally{
+    transferSubmitting=false;
+    setBusy(false);
+    render();
+  }
+}
+
+function reconcileTransferInventory(currentItems){
+  const next={};
+  for(const row of currentItems){
+    const key=canonical(row.code);
+    const old=transferState.items[key];
+    next[key]={
+      code:cleanScan(row.code),
+      description:row.description||old?.description||"",
+      available:Number(row.available)||0,
+      quantity:Math.min(Number(row.available)||0,Number(old?.quantity)||Number(row.available)||0),
+      selected:Boolean(old?.selected && Number(row.available)>0),
+      imageUrl:old?.imageUrl||""
+    };
+  }
+  transferState.items=next;
+  transferState.imagesEnabled=currentItems.length<=30;
+}
+
+function applyTransferSuccess(result){
+  transferState.phase="finished";
+  transferState.savedTransferId=result.transferId||transferState.transferId;
+  transferState.movedCodes=Number(result.movedCodes)||transferTotals().codes;
+  transferState.movedUnits=Number(result.movedUnits)||transferTotals().units;
+  transferState.movementRows=Number(result.movementRows)||transferState.movedCodes*2;
+  transferState.undoUntil=result.undoUntil||"";
+  transferState.result=result.result||"OK";
+  transferState.undone=Boolean(result.undone);
+  transferState.warnings=Array.isArray(result.warnings)?result.warnings:[];
+  localStorage.setItem(TRANSFER_STORAGE_KEY,JSON.stringify(transferState));
+  beepSuccess();vibrate([60,45,60]);
+  setStatus(transferState.warnings.length?`✓ TRASLADO REGISTRADO\n⚠ ${transferState.warnings[0]}`:"✓ TRASLADO REGISTRADO\nAPPSHEET ESTÁ ACTUALIZANDO EXISTENCIAS",transferState.warnings.length?"warn":"ok");
+  render();
+}
+
+async function undoTransfer(){
+  if(transferState.phase!=="finished"||transferState.undone||transferSubmitting) return;
+  if(!window.confirm("¿Deshacer este traslado? Se crearán movimientos inversos.")) return;
+  transferSubmitting=true;
+  setBusy(true);
+  setStatus("REGISTRANDO MOVIMIENTOS DE REVERSA…","info",true);
+  try{
+    const result=await post("/transfers/undo",{
+      transferId:transferState.savedTransferId||transferState.transferId,
+      user:USER_EMAIL,
+      device:DEVICE
+    });
+    if(!result.completed){
+      const first=result.conflicts?.[0];
+      setStatus(first?`NO SE PUEDE DESHACER
+${first.code}: disponible ${formatQuantity(first.available)}`:"NO SE PUEDE DESHACER\nEL INVENTARIO CAMBIÓ","warn");
+      return;
+    }
+    transferState.undone=true;
+    transferState.result="REVERTIDO";
+    persistTransfer();
+    beepSuccess();vibrate([60,45,60]);
+    setStatus("✓ TRASLADO DESHECHO\nSE REGISTRARON LOS MOVIMIENTOS INVERSOS","ok");
+  }catch(error){
+    setStatus(`NO SE PUDO DESHACER
+${error.message}`,"err");
+  }finally{
+    transferSubmitting=false;
+    setBusy(false);
+    render();
+  }
+}
+
+function newTransfer(){
+  localStorage.removeItem(TRANSFER_STORAGE_KEY);
+  transferState=createEmptyTransferState();
+  transferSearchTerm="";
+  setStatus("LISTO PARA ESCANEAR UBICACIÓN ORIGEN","info");
+  render();
+  setTimeout(()=>input.focus(),50);
+}
+
+async function loadTransferImages(){
+  if(!transferState.imagesEnabled) return;
+  const codes=Object.values(transferState.items).map(item=>item.code);
+  if(!codes.length||codes.length>30) return;
+  try{
+    const data=await post("/images",{codes});
+    for(const [rawCode,url] of Object.entries(data.images||{})){
+      const item=transferState.items[canonical(rawCode)];
+      if(item) item.imageUrl=url;
+    }
+    renderTransfer();
+  }catch(error){
+    console.warn("Imágenes de traslado no disponibles",error);
+  }
+}
+
+function renderTransferRoute(){
+  return `<div class="transfer-route"><div class="place"><span>Origen</span><b>${escapeHtml(transferState.sourceLocation||"Pendiente")}</b></div><div class="arrow">→</div><div class="place"><span>Destino</span><b>${escapeHtml(transferState.destinationLocation||"Pendiente")}</b></div></div>`;
+}
+
+function renderTransfer(){
+  document.getElementById("pageTitle").textContent="Traslados masivos";
+  document.getElementById("verificationStats").style.display="none";
+  document.getElementById("locationBanner").style.display="none";
+  document.getElementById("modeBar").style.display="flex";
+  document.getElementById("transferModeBtn").classList.add("hidden");
+  document.getElementById("bulkExitModeBtn").classList.add("hidden");
+  document.getElementById("modeBackBtn").classList.remove("hidden");
+  input.style.display=transferState.phase==="finished"?"none":"block";
+  input.disabled=transferSubmitting||transferState.phase==="finished";
+
+  if(transferState.phase==="source"){
+    document.getElementById("subtitle").textContent="Primero escanee la ubicación origen";
+    input.placeholder="Escanee ubicación origen…";
+    transferContent.innerHTML=`<div class="step-list"><div><span class="step-number">1</span><span>Escanee la ubicación origen.</span></div><div><span class="step-number">2</span><span>Seleccione los artículos o escanéelos.</span></div><div><span class="step-number">3</span><span>Escanee el destino y confirme.</span></div></div>`;
+    return;
+  }
+
+  const totals=transferTotals();
+  const allItems=Object.values(transferState.items);
+  const stats=`<section class="stats"><div class="card"><span>Disponibles</span><b>${allItems.length}</b></div><div class="card"><span>Seleccionados</span><b>${totals.codes}</b></div><div class="card"><span>Unidades</span><b>${formatQuantity(totals.units)}</b></div><div class="card"><span>Fotos</span><b>${transferState.imagesEnabled?"Sí":"No"}</b></div></section>`;
+
+  if(transferState.phase==="select"){
+    document.getElementById("subtitle").textContent="Seleccione artículos; también puede escanearlos";
+    input.placeholder="Escanee un artículo para seleccionarlo…";
+    const term=canonical(transferSearchTerm);
+    const visible=allItems.filter(item=>!term || canonical(`${item.code} ${item.description}`).includes(term));
+    const cards=visible.map(item=>{
+      const key=canonical(item.code);
+      const thumb=transferState.imagesEnabled
+        ? `<div class="transfer-thumb">${item.imageUrl?`<img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.code)}" loading="lazy" onerror="this.style.display='none';this.parentElement.textContent='SIN FOTO'">`:"SIN FOTO"}</div>`
+        : "";
+      const quantityControl=item.selected?`<div class="transfer-qty-control" data-quantity-control><button class="btn" type="button" data-qty-action="minus" data-qty-key="${escapeHtml(key)}" aria-label="Restar una unidad">−</button><input class="transfer-qty-input" data-qty-input data-qty-key="${escapeHtml(key)}" type="number" inputmode="decimal" min="0" max="${escapeHtml(item.available)}" step="any" value="${escapeHtml(item.quantity)}" aria-label="Cantidad a trasladar"><button class="btn" type="button" data-qty-action="plus" data-qty-key="${escapeHtml(key)}" aria-label="Sumar una unidad">+</button><button class="btn" type="button" data-qty-action="max" data-qty-key="${escapeHtml(key)}">Máx.</button><span class="transfer-qty-max">de ${formatQuantity(item.available)}</span></div>`:"";
+      return `<article class="transfer-card ${item.selected?"selected":""} ${transferState.imagesEnabled?"":"no-image"}" data-transfer-key="${escapeHtml(key)}">${thumb}<div class="transfer-main"><div class="transfer-code">${escapeHtml(item.code)}</div><div class="transfer-description">${escapeHtml(item.description||"Sin descripción")}</div><div class="transfer-quantity">Disponible: <b>${formatQuantity(item.available)}</b>${item.selected?` · Trasladar: <b>${formatQuantity(item.quantity)}</b>`:""}</div>${quantityControl}</div><div class="transfer-check">${item.selected?"✓":""}</div></article>`;
+    }).join("") || '<div class="transfer-empty">No hay artículos que coincidan con la búsqueda.</div>';
+
+    transferContent.innerHTML=`${renderTransferRoute()}${stats}<div class="transfer-toolbar"><input id="transferSearch" class="transfer-search" type="search" value="${escapeHtml(transferSearchTerm)}" placeholder="Buscar código o descripción…"><button class="btn btn-primary" type="button" onclick="selectAllTransfer()">✓ Todo</button><button class="btn" type="button" onclick="deselectAllTransfer()">× Ninguno</button></div><div class="transfer-list">${cards}</div><div class="transfer-summary-bar"><div><b>${totals.codes} artículos · ${formatQuantity(totals.units)} unidades</b><span>Puede ajustar la cantidad de cada artículo antes de continuar.</span></div><button class="btn btn-primary" type="button" onclick="continueToDestination()" ${totals.codes?"":"disabled"}>Continuar y escanear destino →</button></div>`;
+    document.getElementById("transferSearch")?.addEventListener("input",event=>updateTransferSearch(event.target.value));
+    transferContent.querySelectorAll("[data-transfer-key]").forEach(card=>card.addEventListener("click",event=>{
+      if(event.target.closest("[data-quantity-control]")) return;
+      toggleTransferItem(card.getAttribute("data-transfer-key"));
+    }));
+    transferContent.querySelectorAll("[data-qty-action]").forEach(button=>button.addEventListener("click",event=>{
+      event.preventDefault();event.stopPropagation();
+      const key=button.getAttribute("data-qty-key");
+      const action=button.getAttribute("data-qty-action");
+      if(action==="minus") adjustTransferQuantity(key,-1);
+      else if(action==="plus") adjustTransferQuantity(key,1);
+      else setTransferMaximum(key);
+    }));
+    transferContent.querySelectorAll("[data-qty-input]").forEach(field=>{
+      field.addEventListener("click",event=>event.stopPropagation());
+      field.addEventListener("change",event=>setTransferQuantity(field.getAttribute("data-qty-key"),event.target.value));
+    });
+    return;
+  }
+
+  if(transferState.phase==="destination"){
+    document.getElementById("subtitle").textContent="Escanee la ubicación destino";
+    input.placeholder="Escanee ubicación destino…";
+    transferContent.innerHTML=`${renderTransferRoute()}${stats}<div class="transfer-review"><h3>Selección lista</h3><p class="transfer-note">Escanee ahora la ubicación donde se colocarán los artículos.</p><div class="actions"><button class="btn" type="button" onclick="editTransferSelection()">← Cambiar selección</button></div></div>`;
+    return;
+  }
+
+  if(transferState.phase==="review"){
+    document.getElementById("subtitle").textContent="Revise y confirme el traslado";
+    input.placeholder="Use los botones para continuar";
+    const rows=selectedTransferItems().map(item=>`<div class="transfer-review-row"><span><b>${escapeHtml(item.code)}</b><br><small>${escapeHtml(item.description||"")} · Disponible ${formatQuantity(item.available)}</small></span><b>${formatQuantity(item.quantity)}</b></div>`).join("");
+    transferContent.innerHTML=`${renderTransferRoute()}${stats}<div class="transfer-review"><h3>Resumen final</h3><div class="transfer-review-list">${rows}</div><p class="transfer-note">Se crearán ${totals.codes*2} movimientos: una SALIDA del origen y un INGRESO al destino por cada código.</p><div class="actions"><button class="btn" type="button" onclick="editTransferSelection()">← Artículos</button><button class="btn" type="button" onclick="rescanDestination()">↻ Destino</button><button class="btn btn-primary" type="button" onclick="confirmTransfer()">✓ Confirmar traslado</button></div></div>`;
+    return;
+  }
+
+  if(transferState.phase==="finished"){
+    document.getElementById("subtitle").textContent=transferState.undone?"Traslado deshecho":"Traslado registrado correctamente";
+    const undoButton=transferState.undone?"":`<button id="transferUndoBtn" class="btn btn-warning" type="button" onclick="undoTransfer()">↶ Deshacer traslado</button>`;
+    const warningText=(transferState.warnings||[]).length?`<div class="status warn">⚠ ${escapeHtml(transferState.warnings.join(" · "))}</div>`:"";
+    transferContent.innerHTML=`${renderTransferRoute()}<section class="result-box ok" style="display:block"><h2>${transferState.undone?"TRASLADO REVERTIDO":"TRASLADO REGISTRADO"}</h2><div class="result-grid"><b>ID</b><span>${escapeHtml(transferState.savedTransferId||transferState.transferId)}</span><b>Artículos</b><span>${transferState.movedCodes}</span><b>Unidades</b><span>${formatQuantity(transferState.movedUnits)}</span><b>Movimientos</b><span>${transferState.movementRows}</span><b>Origen</b><span>${escapeHtml(transferState.sourceLocation)}</span><b>Destino</b><span>${escapeHtml(transferState.destinationLocation)}</span></div>${warningText}<div id="transferCountdown" class="transfer-countdown"></div><div class="actions">${undoButton}<button class="btn btn-primary" type="button" onclick="openTransferInAppSheet()">↩ Ver en AppSheet</button><button class="btn btn-danger" type="button" onclick="newTransfer()">Nuevo traslado</button></div></section>`;
+    startUndoCountdown();
+  }
+}
+
+async function processBulkExitScan(value){
+  if(bulkExitState.phase==="source") return startBulkExit(value);
+  beepError();vibrate([120]);
+  setStatus("USE LOS BOTONES DE LA PANTALLA PARA CONTINUAR","warn");
+}
+
+async function startBulkExit(sourceLocation){
+  bulkExitSubmitting=true;
+  setBusy(true);
+  setStatus(`BUSCANDO ${sourceLocation}…`,"info",true);
+  try{
+    const data=await post("/bulk-exit/start",{
+      operationId:bulkExitState.operationId,
+      sourceLocation,
+      user:USER_EMAIL,
+      device:DEVICE
+    });
+    bulkExitState=createEmptyBulkExitState();
+    bulkExitState.phase="review";
+    bulkExitState.operationId=data.operationId;
+    bulkExitState.sourceLocation=data.sourceLocation;
+    bulkExitState.warehouse=data.warehouse||"BODEGA";
+    bulkExitState.startedAt=data.startedAt;
+    bulkExitState.initialHash=data.initialHash;
+    bulkExitState.imagesEnabled=(data.items||[]).length<=30;
+    for(const row of data.items||[]){
+      const key=canonical(row.code);
+      bulkExitState.items[key]={
+        code:cleanScan(row.code),
+        description:row.description||"",
+        available:Number(row.available)||0,
+        imageUrl:""
+      };
+    }
+    persistBulkExit();
+    beepOk();vibrate([45]);
+    setStatus(`UBICACIÓN CARGADA\n${data.totalCodes} códigos · ${formatQuantity(data.totalUnits)} unidades`,"warn");
+    render();
+    if(bulkExitState.imagesEnabled) loadBulkExitImages();
+  }finally{
+    bulkExitSubmitting=false;
+    setBusy(false);
+  }
+}
+
+function bulkExitTotals(){
+  const items=Object.values(bulkExitState.items);
+  return {
+    codes:items.length,
+    units:items.reduce((sum,item)=>sum+Number(item.available||0),0)
+  };
+}
+
+async function confirmBulkExit(){
+  if(bulkExitState.phase!=="review"||bulkExitSubmitting) return;
+  const totals=bulkExitTotals();
+  const message=`¿DAR SALIDA A TODO?\n\nUbicación: ${bulkExitState.sourceLocation}\nCódigos: ${totals.codes}\nUnidades: ${formatQuantity(totals.units)}\n\nNo se borrarán filas. Se crearán movimientos SALIDA para toda la existencia.`;
+  if(!window.confirm(message)) return;
+  bulkExitSubmitting=true;
+  setBusy(true);
+  setStatus("REGISTRANDO SALIDA DE TODA LA UBICACIÓN…","info",true);
+  try{
+    const result=await post("/bulk-exit/confirm",{
+      operationId:bulkExitState.operationId,
+      sourceLocation:bulkExitState.sourceLocation,
+      warehouse:bulkExitState.warehouse,
+      startedAt:bulkExitState.startedAt,
+      initialHash:bulkExitState.initialHash,
+      user:USER_EMAIL,
+      device:DEVICE,
+      items:Object.values(bulkExitState.items).map(item=>({code:item.code,quantity:item.available}))
+    });
+    if(!result.completed){
+      bulkExitState.initialHash=result.currentHash||bulkExitState.initialHash;
+      bulkExitState.items={};
+      for(const row of result.currentItems||[]){
+        bulkExitState.items[canonical(row.code)]={
+          code:cleanScan(row.code),description:row.description||"",available:Number(row.available)||0,imageUrl:""
+        };
+      }
+      bulkExitState.imagesEnabled=Object.keys(bulkExitState.items).length<=30;
+      persistBulkExit();
+      beepError();vibrate([200,80,200]);
+      setStatus("EL INVENTARIO CAMBIÓ\nREVISE LA LISTA Y CONFIRME DE NUEVO","warn");
+      render();
+      if(bulkExitState.imagesEnabled) loadBulkExitImages();
+      return;
+    }
+    applyBulkExitSuccess(result);
+  }catch(error){
+    try{
+      const status=await post("/bulk-exit/status",{operationId:bulkExitState.operationId});
+      if(status.found&&status.complete){applyBulkExitSuccess(status);return}
+    }catch(_){ }
+    setStatus(`NO SE PUDO COMPLETAR\n${error.message}\nPuede reintentar sin duplicar movimientos.`,"err");
+  }finally{
+    bulkExitSubmitting=false;
+    setBusy(false);
+    render();
+  }
+}
+
+function applyBulkExitSuccess(result){
+  bulkExitState.phase="finished";
+  bulkExitState.savedOperationId=result.operationId||bulkExitState.operationId;
+  bulkExitState.movedCodes=Number(result.movedCodes)||bulkExitTotals().codes;
+  bulkExitState.movedUnits=Number(result.movedUnits)||bulkExitTotals().units;
+  bulkExitState.movementRows=Number(result.movementRows)||bulkExitState.movedCodes;
+  bulkExitState.undoUntil=result.undoUntil||"";
+  bulkExitState.result=result.result||"OK";
+  bulkExitState.undone=Boolean(result.undone);
+  bulkExitState.warnings=Array.isArray(result.warnings)?result.warnings:[];
+  localStorage.setItem(BULK_EXIT_STORAGE_KEY,JSON.stringify(bulkExitState));
+  beepSuccess();vibrate([60,45,60]);
+  setStatus("✓ SALIDA MASIVA REGISTRADA\nAPPSHEET ESTÁ ACTUALIZANDO EXISTENCIAS","ok");
+  render();
+}
+
+async function undoBulkExit(){
+  if(bulkExitState.phase!=="finished"||bulkExitState.undone||bulkExitSubmitting) return;
+  if(!window.confirm("¿Deshacer la salida masiva? Se crearán INGRESOS por las mismas cantidades.")) return;
+  bulkExitSubmitting=true;
+  setBusy(true);
+  setStatus("REGISTRANDO INGRESOS DE REVERSA…","info",true);
+  try{
+    const result=await post("/bulk-exit/undo",{
+      operationId:bulkExitState.savedOperationId||bulkExitState.operationId,
+      user:USER_EMAIL,
+      device:DEVICE
+    });
+    bulkExitState.undone=true;
+    bulkExitState.result="REVERTIDO";
+    persistBulkExit();
+    beepSuccess();vibrate([60,45,60]);
+    setStatus("✓ SALIDA MASIVA DESHECHA\nSE REGISTRARON LOS INGRESOS INVERSOS","ok");
+  }catch(error){
+    setStatus(`NO SE PUDO DESHACER\n${error.message}`,"err");
+  }finally{
+    bulkExitSubmitting=false;
+    setBusy(false);
+    render();
+  }
+}
+
+function newBulkExit(){
+  localStorage.removeItem(BULK_EXIT_STORAGE_KEY);
+  bulkExitState=createEmptyBulkExitState();
+  setStatus("LISTO PARA ESCANEAR LA UBICACIÓN QUE SE VACIARÁ","warn");
+  render();
+  setTimeout(()=>input.focus(),50);
+}
+
+async function loadBulkExitImages(){
+  if(!bulkExitState.imagesEnabled) return;
+  const codes=Object.values(bulkExitState.items).map(item=>item.code);
+  if(!codes.length||codes.length>30) return;
+  try{
+    const data=await post("/images",{codes});
+    for(const [rawCode,url] of Object.entries(data.images||{})){
+      const item=bulkExitState.items[canonical(rawCode)];
+      if(item) item.imageUrl=url;
+    }
+    renderBulkExit();
+  }catch(error){console.warn("Imágenes de salida masiva no disponibles",error)}
+}
+
+function renderBulkExit(){
+  document.getElementById("pageTitle").textContent="Salida total de ubicación";
+  document.getElementById("verificationStats").style.display="none";
+  document.getElementById("locationBanner").style.display="none";
+  document.getElementById("modeBar").style.display="flex";
+  document.getElementById("transferModeBtn").classList.add("hidden");
+  document.getElementById("bulkExitModeBtn").classList.add("hidden");
+  document.getElementById("modeBackBtn").classList.remove("hidden");
+  input.style.display=bulkExitState.phase==="finished"?"none":"block";
+  input.disabled=bulkExitSubmitting||bulkExitState.phase==="finished";
+
+  if(bulkExitState.phase==="source"){
+    document.getElementById("subtitle").textContent="Escanee la ubicación que desea dejar en cero";
+    input.placeholder="Escanee ubicación…";
+    transferContent.innerHTML=`<div class="bulk-warning"><strong>Salida total con historial</strong>No se borrará ninguna fila de EXISTENCIAS BODEGA. Se crearán movimientos SALIDA por todos los códigos y todas las unidades de la ubicación.</div><div class="step-list"><div><span class="step-number">1</span><span>Escanee la ubicación.</span></div><div><span class="step-number">2</span><span>Revise todos los códigos y cantidades.</span></div><div><span class="step-number">3</span><span>Confirme la salida total.</span></div></div>`;
+    return;
+  }
+
+  const totals=bulkExitTotals();
+  const items=Object.values(bulkExitState.items);
+  if(bulkExitState.phase==="review"){
+    document.getElementById("subtitle").textContent="Revise antes de dar salida a todo";
+    input.style.display="none";
+    const cards=items.map(item=>{
+      const thumb=bulkExitState.imagesEnabled?`<div class="bulk-thumb">${item.imageUrl?`<img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.code)}" loading="lazy" onerror="this.style.display='none';this.parentElement.textContent='SIN FOTO'">`:"SIN FOTO"}</div>`:"";
+      return `<article class="bulk-card ${bulkExitState.imagesEnabled?"":"no-image"}">${thumb}<div><div class="transfer-code">${escapeHtml(item.code)}</div><div class="transfer-description">${escapeHtml(item.description||"Sin descripción")}</div></div><div class="bulk-total">${formatQuantity(item.available)}</div></article>`;
+    }).join("");
+    transferContent.innerHTML=`<div class="transfer-route"><div class="place"><span>Ubicación</span><b>${escapeHtml(bulkExitState.sourceLocation)}</b></div><div class="arrow">⇥</div><div class="place"><span>Resultado</span><b>Existencia 0</b></div></div><section class="stats"><div class="card"><span>Códigos</span><b>${totals.codes}</b></div><div class="card"><span>Unidades</span><b>${formatQuantity(totals.units)}</b></div><div class="card"><span>Movimientos SALIDA</span><b>${totals.codes}</b></div><div class="card"><span>Fotos</span><b>${bulkExitState.imagesEnabled?"Sí":"No"}</b></div></section><div class="bulk-warning"><strong>Esta acción afecta todo</strong>Se dará salida a cada unidad listada. El historial quedará en MOVIMIENTOS BODEGA con el mismo ID TRASLADO.</div><div class="bulk-grid">${cards}</div><div class="actions"><button class="btn btn-danger" type="button" onclick="confirmBulkExit()">⇥ DAR SALIDA A TODO</button></div>`;
+    return;
+  }
+
+  if(bulkExitState.phase==="finished"){
+    document.getElementById("subtitle").textContent=bulkExitState.undone?"Salida masiva deshecha":"Salida masiva registrada";
+    const undoButton=bulkExitState.undone?"":`<button id="bulkExitUndoBtn" class="btn btn-warning" type="button" onclick="undoBulkExit()">↶ Deshacer salida masiva</button>`;
+    transferContent.innerHTML=`<section class="result-box ok" style="display:block"><h2>${bulkExitState.undone?"SALIDA REVERTIDA":"UBICACIÓN VACIADA"}</h2><div class="result-grid"><b>ID</b><span>${escapeHtml(bulkExitState.savedOperationId||bulkExitState.operationId)}</span><b>Ubicación</b><span>${escapeHtml(bulkExitState.sourceLocation)}</span><b>Códigos</b><span>${bulkExitState.movedCodes}</span><b>Unidades</b><span>${formatQuantity(bulkExitState.movedUnits)}</span><b>Movimientos</b><span>${bulkExitState.movementRows}</span></div><div id="bulkExitCountdown" class="transfer-countdown"></div><div class="actions">${undoButton}<button class="btn btn-primary" type="button" onclick="openBulkExitInAppSheet()">↩ Ver en AppSheet</button><button class="btn btn-danger" type="button" onclick="newBulkExit()">Nueva salida total</button></div></section>`;
+    startBulkExitUndoCountdown();
+  }
+}
+
+function startBulkExitUndoCountdown(){
+  clearInterval(undoTimer);
+  const update=()=>{
+    const el=document.getElementById("bulkExitCountdown");
+    const button=document.getElementById("bulkExitUndoBtn");
+    if(!el) return;
+    if(bulkExitState.undone){el.textContent="";return}
+    const remaining=new Date(bulkExitState.undoUntil).getTime()-Date.now();
+    if(!bulkExitState.undoUntil||remaining<=0){
+      el.textContent="El tiempo para deshacer terminó.";
+      if(button) button.disabled=true;
+      clearInterval(undoTimer);
+      return;
+    }
+    const seconds=Math.ceil(remaining/1000);
+    el.textContent=`Deshacer disponible durante ${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,"0")}`;
+  };
+  update();
+  undoTimer=setInterval(update,1000);
+}
+
+function render(){
+  const operationMode=mode!=="verification";
+  verificationPanel.classList.toggle("hidden",operationMode);
+  transferPanel.classList.toggle("hidden",!operationMode);
+  if(mode==="transfer") renderTransfer();
+  else if(mode==="bulkExit") renderBulkExit();
+  else renderVerification();
+}
+
+function startUndoCountdown(){
+  clearInterval(undoTimer);
+  const update=()=>{
+    const el=document.getElementById("transferCountdown");
+    const button=document.getElementById("transferUndoBtn");
+    if(!el) return;
+    if(transferState.undone){el.textContent="";return}
+    const remaining=new Date(transferState.undoUntil).getTime()-Date.now();
+    if(!transferState.undoUntil || remaining<=0){
+      el.textContent="El tiempo para deshacer terminó.";
+      if(button) button.disabled=true;
+      clearInterval(undoTimer);
+      return;
+    }
+    const seconds=Math.ceil(remaining/1000);
+    const minutes=Math.floor(seconds/60);
+    const rest=String(seconds%60).padStart(2,"0");
+    el.textContent=`Deshacer disponible durante ${minutes}:${rest}`;
+  };
+  update();
+  undoTimer=setInterval(update,1000);
+}
+
+function tone(freq,ms,type="sine",gain=.23){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const osc=ctx.createOscillator();const volume=ctx.createGain();
+    osc.type=type;osc.frequency.value=freq;
+    volume.gain.setValueAtTime(.0001,ctx.currentTime);
+    volume.gain.exponentialRampToValueAtTime(gain,ctx.currentTime+.01);
+    volume.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+ms/1000);
+    osc.connect(volume);volume.connect(ctx.destination);osc.start();
+    setTimeout(()=>{osc.stop();ctx.close?.()},ms+40);
+  }catch(_){}
+}
+function beepOk(){tone(900,85)}
+function beepError(){tone(220,230,"sawtooth")}
+function beepNotBelonging(){tone(320,100,"square");setTimeout(()=>tone(320,100,"square"),150)}
+function beepUnregistered(){tone(520,70,"square");setTimeout(()=>tone(520,70,"square"),110);setTimeout(()=>tone(520,70,"square"),220)}
+function beepUndo(){tone(650,80,"sine")}
+function beepSuccess(){tone(700,90);setTimeout(()=>tone(900,90),120);setTimeout(()=>tone(1150,130),240)}
+function vibrate(pattern){try{navigator.vibrate?.(pattern)}catch(_){}}
+
+function buildAppSheetReturnUrls(forceSync=false, openSavedDetail=false, explicitRow=""){
+  const custom=params.get("back_url");
+  if(custom) return {appUrl:custom,webUrl:custom};
+  const savedId=explicitRow || state.savedVerificationId || state.verificationId;
+  const useDetail=Boolean((openSavedDetail||explicitRow) && savedId);
+  const targetView=useDetail ? BACK_DETAIL_VIEW : BACK_VIEW;
+  let fragment=`#view=${encodeURIComponent(targetView)}`;
+  if(useDetail) fragment += `&row=${encodeURIComponent(savedId)}`;
+  if(forceSync) fragment += `&at=${encodeURIComponent(new Date(Date.now()+60000).toISOString())}`;
+  return {
+    appUrl:`appsheet://www.appsheet.com/start/${APP_ID}${fragment}`,
+    webUrl:`https://www.appsheet.com/start/${APP_ID}${fragment}`
+  };
+}
+
+function openAppSheet(forceSync=false, openSavedDetail=false, explicitRow=""){
+  const {appUrl,webUrl}=buildAppSheetReturnUrls(forceSync,openSavedDetail,explicitRow);
+  location.href=appUrl;
+  setTimeout(()=>{location.href=webUrl},900);
+}
+
+function regresarAppSheetActualizar(){
+  setStatus("REGRESANDO A LA VERIFICACIÓN GUARDADA Y ACTUALIZANDO…", "info", true);
+  openAppSheet(true,true);
+}
+
+function openTransferInAppSheet(){
+  setStatus("ABRIENDO EL TRASLADO EN APPSHEET…","info",true);
+  openAppSheet(true,true,transferState.savedTransferId||transferState.transferId);
+}
+
+function openBulkExitInAppSheet(){
+  setStatus("ABRIENDO LA SALIDA MASIVA EN APPSHEET…","info",true);
+  openAppSheet(true,true,bulkExitState.savedOperationId||bulkExitState.operationId);
+}
+
+function volver(){
+  if(mode==="transfer"){
+    const row=transferState.phase==="finished"?(transferState.savedTransferId||transferState.transferId):"";
+    openAppSheet(Boolean(row),Boolean(row),row);
+    return;
+  }
+  if(mode==="bulkExit"){
+    const row=bulkExitState.phase==="finished"?(bulkExitState.savedOperationId||bulkExitState.operationId):"";
+    openAppSheet(Boolean(row),Boolean(row),row);
+    return;
+  }
+  const finished=state.phase==="finished";
+  openAppSheet(finished,finished);
+}
+
+function scheduleReturnRefresh(){
+  if(mode!=="verification"||state.phase!=="scanning"||!state.needsRefresh) return;
+  clearTimeout(returningRefreshTimer);
+  returningRefreshTimer=setTimeout(()=>refreshVerificationInventory(true),1400);
+}
+
+document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden) scheduleReturnRefresh();
+});
+window.addEventListener("pageshow",scheduleReturnRefresh);
+
+window.addEventListener("load",()=>{
+  const restoredVerification=restore();
+  const restoredTransfer=restoreTransfer();
+  const restoredBulkExit=restoreBulkExit();
+  if(restoredBulkExit){
+    mode="bulkExit";
+    setStatus(bulkExitState.phase==="finished"?"SALIDA MASIVA RECUPERADA":"SESIÓN DE SALIDA MASIVA RECUPERADA","info");
+  }else if(restoredTransfer){
+    mode="transfer";
+    setStatus(transferState.phase==="finished"?"TRASLADO RECUPERADO":"SESIÓN DE TRASLADO RECUPERADA","info");
+  }else if(restoredVerification){
+    mode="verification";
+    setStatus(`SESIÓN RECUPERADA
+${state.location}`, "info");
+  }
+  render();
+  if(mode==="verification"&&state.phase==="scanning"){
+    input.placeholder="Escanee artículos…";
+    document.getElementById("subtitle").textContent="Sesión recuperada; continúe escaneando";
+  }
+  setTimeout(()=>input.focus(),250);
+});
+</script>
+</body>
+</html>
